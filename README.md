@@ -4,27 +4,38 @@ A shared tracker and map for a Bengaluru 2 BHK hunt: gated society / apartment /
 
 Listings are stored in **Postgres**. JSON export / import remains a backup.
 
-## Run anywhere (Docker)
+## Run on your computer (Docker Desktop)
 
-Needs Docker Engine with Compose v2 (Docker Desktop, or `docker` + `docker compose` on Linux). No host Node.js install.
+Install [Docker Desktop](https://docs.docker.com/get-started/get-docker/) (or Docker Engine + Compose v2). No Node.js install is required.
+
+This stack currently lives on branch `cursor/docker-compose-anywhere-ae2a` (not `main` yet).
 
 ```bash
+git clone https://github.com/chethankumblekar/genesis.git
+cd genesis
+git checkout cursor/docker-compose-anywhere-ae2a
 docker compose up --build
 ```
 
-Open [http://127.0.0.1:43123](http://127.0.0.1:43123). The app and database start together. Data lives in the `househunting_pg` volume and survives `docker compose down`. Remove it with `docker compose down -v`.
-
-To publish a different host port:
+If you already have the repo:
 
 ```bash
-cp .env.example .env
-# edit APP_PORT, then:
+git fetch origin
+git checkout cursor/docker-compose-anywhere-ae2a
+git pull
 docker compose up --build
 ```
 
-Or one-shot: `APP_PORT=8080 docker compose up --build`.
+Open [http://127.0.0.1:43123](http://127.0.0.1:43123). Compose starts the app and Postgres together. Listings persist in the Docker volume `househunting_pg`.
 
-Stop with Ctrl+C, or `docker compose down`.
+Stop with Ctrl+C, or `docker compose down`. Wipe data with `docker compose down -v`.
+
+Port already in use:
+
+```bash
+APP_PORT=8080 docker compose up --build          # app at http://127.0.0.1:8080
+DB_PORT=5433 docker compose up --build           # if something else is on 5432
+```
 
 ## Run locally (Node.js)
 
