@@ -1,29 +1,23 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { useMemo, useRef, useState } from "react";
 import { Download, MapPin, Plus, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FiltersBar } from "@/components/filters-bar";
 import { ListingBoard } from "@/components/listing-board";
 import { ListingFormSheet } from "@/components/listing-form";
+import { ListingMap } from "@/components/listing-map";
 import { PasteHelperDialog } from "@/components/paste-helper";
-import { DEFAULT_MAX_RENT, type Area, type Filters, type Listing, type ListingDraft } from "@/lib/types";
 import { useListings } from "@/lib/listings-context";
 import { mergeListings, parseImport, toExportFile } from "@/lib/storage";
 import { isOverBudget } from "@/lib/format";
-
-const ListingMap = dynamic(
-  () => import("@/components/listing-map").then((m) => m.ListingMap),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-        Loading map…
-      </div>
-    ),
-  }
-);
+import {
+  DEFAULT_MAX_RENT,
+  type Area,
+  type Filters,
+  type Listing,
+  type ListingDraft,
+} from "@/lib/types";
 
 export function HuntApp() {
   const { listings, ready, upsert, update, remove, replaceAll } = useListings();
@@ -111,18 +105,18 @@ export function HuntApp() {
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => setPasteOpen(true)}>
+            <Button type="button" variant="outline" onClick={() => setPasteOpen(true)}>
               Paste URL or notes
             </Button>
-            <Button onClick={openNew}>
+            <Button type="button" onClick={openNew}>
               <Plus data-icon="inline-start" />
               Add listing
             </Button>
-            <Button variant="outline" onClick={exportJson}>
+            <Button type="button" variant="outline" onClick={exportJson}>
               <Download data-icon="inline-start" />
               Export JSON
             </Button>
-            <Button variant="outline" onClick={() => fileRef.current?.click()}>
+            <Button type="button" variant="outline" onClick={() => fileRef.current?.click()}>
               <Upload data-icon="inline-start" />
               Import
             </Button>

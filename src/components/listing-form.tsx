@@ -12,14 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Overlay } from "@/components/overlay";
 import { Textarea } from "@/components/ui/textarea";
 import {
   HOUSING_TYPE_LABELS,
@@ -115,9 +108,15 @@ export function ListingFormSheet({
   onSave: (listing: Listing) => void;
   onDelete?: (id: string) => void;
 }) {
-  const formKey = `${listing?.id ?? "new"}-${open ? "open" : "closed"}-${draft?.society ?? ""}-${draft?.url ?? ""}`;
+  const formKey = `${listing?.id ?? "new"}-${draft?.society ?? ""}-${draft?.url ?? ""}`;
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
+    <Overlay
+      open={open}
+      onClose={() => onOpenChange(false)}
+      title={listing ? "Edit listing" : "Add listing"}
+      description="2 BHK under ₹30k in South Bengaluru. Confirm details before they land on the board."
+      footer={null}
+    >
       {open ? (
         <ListingFormBody
           key={formKey}
@@ -128,7 +127,7 @@ export function ListingFormSheet({
           onDelete={onDelete}
         />
       ) : null}
-    </Sheet>
+    </Overlay>
   );
 }
 
@@ -227,19 +226,7 @@ function ListingFormBody({
   }
 
   return (
-    <SheetContent
-        side="right"
-        className="w-full overflow-y-auto sm:max-w-lg"
-        showCloseButton
-      >
-        <SheetHeader>
-          <SheetTitle>{listing ? "Edit listing" : "Add listing"}</SheetTitle>
-          <SheetDescription>
-            2 BHK under ₹30k in South Bengaluru. Confirm details before they
-            land on the board.
-          </SheetDescription>
-        </SheetHeader>
-        <div className="grid gap-3 px-4 pb-4">
+    <div className="grid gap-3">
           <Field label="Society or building">
             <Input
               value={form.society}
@@ -491,10 +478,10 @@ function ListingFormBody({
           {geoMsg ? (
             <p className="text-xs text-muted-foreground">{geoMsg}</p>
           ) : null}
-        </div>
-        <SheetFooter className="flex-row justify-between gap-2">
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-2 border-t pt-3">
           {listing && onDelete ? (
             <Button
+              type="button"
               variant="destructive"
               onClick={() => {
                 onDelete(listing.id);
@@ -507,13 +494,15 @@ function ListingFormBody({
             <span />
           )}
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSave}>Save listing</Button>
+            <Button type="button" onClick={handleSave}>
+              Save listing
+            </Button>
           </div>
-        </SheetFooter>
-      </SheetContent>
+        </div>
+    </div>
   );
 }
 
