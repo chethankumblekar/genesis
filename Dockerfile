@@ -25,15 +25,13 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV HOSTNAME=0.0.0.0
 ENV PORT=43123
 
-RUN groupadd --system --gid 1001 nodejs \
-  && useradd --system --uid 1001 --gid nodejs nextjs
+# Use the distroless-friendly `node` user shipped by the official image (uid 1000).
+COPY --from=builder --chown=node:node /app/public ./public
+COPY --from=builder --chown=node:node /app/.next/standalone ./
+COPY --from=builder --chown=node:node /app/.next/static ./.next/static
+COPY --chown=node:node docker/healthcheck.js ./healthcheck.js
 
-COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-COPY --chown=nextjs:nodejs docker/healthcheck.js ./healthcheck.js
-
-USER nextjs
+USER node
 EXPOSE 43123
 
 HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=5 \
