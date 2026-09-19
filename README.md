@@ -33,11 +33,19 @@ docker compose up --build
 
 Stop with Ctrl+C in that terminal, or click Stop in Docker Desktop. Wipe data with `docker compose down -v`.
 
-Port already in use:
+If Docker Desktop **Start** fails with `127.0.0.1:5432 … address already in use`, a local Postgres already owns 5432. Do not click Start on the old stack. Recreate so the db publishes **5433** (Compose default):
+
+```bash
+docker compose down
+git pull
+docker compose up --build
+```
+
+Other host ports:
 
 ```bash
 APP_PORT=8080 docker compose up --build          # app at http://127.0.0.1:8080
-DB_PORT=5433 docker compose up --build           # if something else is on 5432
+DB_PORT=5434 docker compose up --build           # if 5433 is also taken
 ```
 
 ## Run locally (Node.js)
