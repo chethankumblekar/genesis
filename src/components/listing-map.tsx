@@ -50,9 +50,8 @@ export function ListingMap({
           13
         );
         L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-          attribution:
-            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-        }).addTo(map);
+        attribution: "&copy; OpenStreetMap",
+      }).addTo(map);
         mapRef.current = map;
         setMapError(null);
         setMapReady((n) => n + 1);

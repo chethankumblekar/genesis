@@ -180,23 +180,10 @@ function ListingFormBody({
     }
   }
 
-  async function handleSave() {
+  function handleSave() {
     const base = listing ?? emptyListing(draft ?? {});
     let lat = parseNum(form.lat);
     let lng = parseNum(form.lng);
-    if (lat == null || lng == null) {
-      const q = [form.address, form.society, form.area, "Bengaluru"].filter(Boolean).join(", ");
-      try {
-        const res = await fetch(`/api/geocode?q=${encodeURIComponent(q)}`);
-        const data = (await res.json()) as { lat: number | null; lng: number | null };
-        if (data.lat != null && data.lng != null) {
-          lat = data.lat;
-          lng = data.lng;
-        }
-      } catch {
-        /* keep null */
-      }
-    }
     if (lat == null || lng == null) {
       const c = AREA_CENTERS[form.area];
       lat = c.lat;

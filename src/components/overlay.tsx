@@ -39,14 +39,14 @@ export function Overlay({
 
   const panel =
     variant === "drawer"
-      ? "absolute inset-y-0 right-0 flex w-full max-w-lg flex-col bg-card text-card-foreground shadow-xl"
-      : "relative mx-auto mt-[8vh] flex max-h-[84vh] w-full max-w-lg flex-col rounded-xl bg-card text-card-foreground shadow-xl ring-1 ring-foreground/10";
+      ? "absolute inset-y-0 right-0 z-10 flex w-full max-w-lg flex-col bg-card text-card-foreground shadow-xl pointer-events-auto"
+      : "relative z-10 mx-auto mt-[8vh] flex max-h-[84vh] w-full max-w-lg flex-col rounded-xl bg-card text-card-foreground shadow-xl ring-1 ring-foreground/10 pointer-events-auto";
 
   return (
     <div className="fixed inset-0 z-[100]" role="presentation" data-hh-overlay="">
       <button
         type="button"
-        className="absolute inset-0 bg-black/40"
+        className="absolute inset-0 z-0 bg-black/40"
         aria-label="Close overlay"
         onClick={onClose}
       />
