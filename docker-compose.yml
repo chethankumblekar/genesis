@@ -6,8 +6,7 @@
 # Override the published host port without rebuilding:
 #   APP_PORT=8080 docker compose up --build
 #
-# Listings persist in Postgres (volume househunting_pg).
-# Wipe data with: docker compose down -v
+# Listings persist in Postgres (volume `househunting_pg`). The app talks to Postgres over a shared socket volume so it works even when container TCP/ICC is restricted. Wipe data with: `docker compose down -v`
 #
 # Needs outbound HTTPS at runtime for map tiles, Nominatim geocode, and paste OG fetches.
 
@@ -23,6 +22,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-househunting}
     volumes:
       - househunting_pg:/var/lib/postgresql/data
+      - househunting_pg_run:/var/run/postgresql
     ports:
       - "${DB_PORT:-5432}:5432"
     healthcheck:
@@ -44,12 +44,14 @@ services:
         condition: service_healthy
     ports:
       - "${APP_PORT:-43123}:43123"
+    volumes:
+      - househunting_pg_run:/var/run/postgresql
     environment:
       NODE_ENV: production
       HOSTNAME: 0.0.0.0
       PORT: "43123"
       NEXT_TELEMETRY_DISABLED: "1"
-      DATABASE_URL: postgres://${POSTGRES_USER:-househunting}:${POSTGRES_PASSWORD:-househunting}@db:5432/${POSTGRES_DB:-househunting}
+      DATABASE_URL: postgres://${POSTGRES_USER:-househunting}:${POSTGRES_PASSWORD:-househunting}@/househunting?host=/var/run/postgresql
     healthcheck:
       test: ["CMD", "node", "healthcheck.js"]
       interval: 15s
@@ -59,3 +61,4 @@ services:
 
 volumes:
   househunting_pg:
+  househunting_pg_run:

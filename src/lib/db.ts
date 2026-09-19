@@ -44,6 +44,7 @@ export function getPool(): Pool {
     globalForPg.pool = new Pool({
       connectionString: getDatabaseUrl(),
       max: 10,
+      connectionTimeoutMillis: 5000,
     });
   }
   return globalForPg.pool;
