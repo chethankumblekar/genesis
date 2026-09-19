@@ -4,7 +4,29 @@ A shared tracker and map for a Bengaluru 2 BHK hunt: gated society / apartment /
 
 Listings live in this browser (`localStorage`). There is no login and no database. Share progress with JSON export / import.
 
-## Run locally
+## Run anywhere (Docker)
+
+Needs Docker Engine with Compose v2 (Docker Desktop, or `docker` + `docker compose` on Linux). No host Node.js install.
+
+```bash
+docker compose up --build
+```
+
+Open [http://127.0.0.1:43123](http://127.0.0.1:43123). Listings stay in the browser (`localStorage`); the container is stateless.
+
+To publish a different host port:
+
+```bash
+cp .env.example .env
+# edit APP_PORT, then:
+docker compose up --build
+```
+
+Or one-shot: `APP_PORT=8080 docker compose up --build`.
+
+Stop with Ctrl+C, or `docker compose down`.
+
+## Run locally (Node.js)
 
 ```bash
 npm install
@@ -13,7 +35,7 @@ npm run dev
 
 Open [http://127.0.0.1:43123](http://127.0.0.1:43123). The app binds `0.0.0.0` on port **43123**.
 
-Production (recommended for a stable preview):
+Production (recommended for a stable preview without Docker):
 
 ```bash
 npm run build

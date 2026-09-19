@@ -1,0 +1,33 @@
+# HouseHunting — portable Compose stack (Linux, macOS, Windows/Docker Desktop)
+#
+#   docker compose up --build
+#   open http://127.0.0.1:43123
+#
+# Override the published host port without rebuilding:
+#   APP_PORT=8080 docker compose up --build
+#
+# Needs outbound HTTPS at runtime for map tiles, Nominatim geocode, and paste OG fetches.
+
+name: househunting
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: househunting:local
+    restart: unless-stopped
+    init: true
+    ports:
+      - "${APP_PORT:-43123}:43123"
+    environment:
+      NODE_ENV: production
+      HOSTNAME: 0.0.0.0
+      PORT: "43123"
+      NEXT_TELEMETRY_DISABLED: "1"
+    healthcheck:
+      test: ["CMD", "node", "healthcheck.js"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
