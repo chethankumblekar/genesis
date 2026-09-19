@@ -1,5 +1,11 @@
 import { NextResponse } from "next/server";
-import { extractHints, extractOpenGraph } from "@/lib/heuristics";
+import {
+  extractListingCandidates,
+  fragileHostMessage,
+} from "@/lib/extract-listings";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   let body: { url?: string; notes?: string };
@@ -13,13 +19,10 @@ export async function POST(request: Request) {
   const notes = body.notes?.trim() || "";
   if (!url && !notes) {
     return NextResponse.json(
-      { error: "Paste a listing URL or some notes." },
+      { error: "Paste a listing URL or the text from a listing." },
       { status: 400 }
     );
   }
-
-  const warnings: string[] = [];
-  let og: { title?: string; description?: string; image?: string } = {};
 
   if (url) {
     try {
@@ -27,45 +30,61 @@ export async function POST(request: Request) {
     } catch {
       return NextResponse.json({ error: "That URL is not valid." }, { status: 400 });
     }
+  }
 
+  const warnings: string[] = [];
+  let html = "";
+  const fetchState: {
+    attempted: boolean;
+    ok: boolean;
+    status?: number;
+    skipped?: string;
+  } = { attempted: false, ok: false };
+
+  const fragile = url ? fragileHostMessage(url) : null;
+  if (fragile) warnings.push(fragile.message);
+
+  if (url && !fragile?.skip) {
+    fetchState.attempted = true;
     try {
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 8000);
+      const timer = setTimeout(() => controller.abort(), 12000);
       const res = await fetch(url, {
         signal: controller.signal,
         redirect: "follow",
         headers: {
           "User-Agent":
-            "HouseHuntingTracker/1.0 (Open Graph metadata only; no listing scrape)",
-          Accept: "text/html,application/xhtml+xml",
+            "HouseHuntingTracker/1.1 (user-initiated listing import; public HTML only)",
+          Accept: "text/html,application/xhtml+xml,application/ld+json;q=0.9",
+          "Accept-Language": "en-IN,en;q=0.8",
         },
       });
       clearTimeout(timer);
+      fetchState.status = res.status;
+      fetchState.ok = res.ok;
       if (!res.ok) {
         warnings.push(
-          `Could not read public metadata (${res.status}). Fill the form by hand.`
+          `The page returned ${res.status}. Paste the listing text for a reliable import.`
         );
       } else {
-        const html = await res.text();
-        og = extractOpenGraph(html.slice(0, 250_000));
-        if (!og.title && !og.description) {
-          warnings.push(
-            "No Open Graph tags found. Many Facebook and NoBroker pages block this — paste notes instead."
-          );
-        }
+        html = (await res.text()).slice(0, 500_000);
       }
     } catch {
+      fetchState.ok = false;
       warnings.push(
-        "This site blocked a metadata fetch. Paste title/rent/area into notes and try again, or fill the form manually."
+        "Could not fetch that URL. Paste rent, area, and society from the listing instead."
       );
     }
+  } else if (fragile?.skip) {
+    fetchState.skipped = fragile.message;
   }
 
-  const combined = [og.title, og.description, notes].filter(Boolean).join("\n");
-  const hints = extractHints(combined, url || undefined);
-  if (!hints.society && og.title) hints.society = og.title.slice(0, 80);
-  if (og.image) hints.photoUrls = [og.image];
-  if (notes) hints.notes = notes;
+  const extracted = extractListingCandidates({ html, url, notes });
+  const mergedWarnings = [...warnings, ...extracted.warnings];
 
-  return NextResponse.json({ og, hints, warnings });
+  return NextResponse.json({
+    candidates: extracted.candidates,
+    warnings: mergedWarnings,
+    fetch: fetchState,
+  });
 }

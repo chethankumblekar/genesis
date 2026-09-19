@@ -61,11 +61,18 @@ npm run build
 npm start
 ```
 
-## Paste helper
+## Find listings
 
-Paste a public listing URL and/or a blob of notes, then **Extract metadata**. The `/api/paste` route fetches **only** Open Graph title, description, and image (plus the HTML `<title>`). A small heuristic then looks in that text for rent, deposit, BHK, locality, parking, and furnished.
+**Find listings** pastes a public URL and/or listing text, then shows a **ranked list of guesses** (not a silent one-shot fill). Pick a row, check the field preview, then **Review in form**. Nothing is saved until you hit **Save listing**.
 
-Nothing is saved until you confirm **Review in form** and hit **Save listing**. Sites that block fetches (typical for Facebook Marketplace and many NoBroker pages) stay manual — paste the rent and area into notes instead. This app does not scrape those sites.
+What we read from a public page, in order:
+
+1. JSON-LD (`RealEstateListing`, apartments, item lists)
+2. Embedded page JSON (`__NEXT_DATA__` and `application/json` script tags)
+3. Open Graph / Twitter title, description, and image, plus visible text
+4. Your notes, including several listings split by `---`, numbered items, or extra `2 BHK` blocks
+
+Each option shows a confidence (high / medium / low), which fields were filled, and what is still missing. Facebook and Instagram are **not fetched** — paste rent, area, and society from the app. NoBroker is tried once; if it blocks, paste the text. This app does not bypass anti-bot walls.
 
 ## Export and import
 

@@ -112,7 +112,7 @@ export function HuntApp() {
               className={buttonVariants({ variant: "outline" })}
               onClick={() => setPasteOpen(true)}
             >
-              Paste URL or notes
+              Find listings
             </button>
             <button
               type="button"

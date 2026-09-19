@@ -32,8 +32,8 @@ export function ListingBoard({
   if (listings.length === 0) {
     return (
       <div className="rounded-xl border border-dashed bg-card/60 px-4 py-10 text-center text-sm text-muted-foreground">
-        No listings match these filters. Paste a URL, add one by hand, or loosen
-        rent / parking / area.
+        No listings match these filters. Find listings from a URL or notes, add
+        one by hand, or loosen rent / parking / area.
       </div>
     );
   }

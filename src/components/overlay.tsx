@@ -12,6 +12,7 @@ export function Overlay({
   children,
   footer,
   variant = "drawer",
+  size = "md",
 }: {
   open: boolean;
   onClose: () => void;
@@ -20,6 +21,7 @@ export function Overlay({
   children: ReactNode;
   footer?: ReactNode;
   variant?: "drawer" | "modal";
+  size?: "md" | "lg";
 }) {
   useEffect(() => {
     if (!open) return;
@@ -40,7 +42,9 @@ export function Overlay({
   const panel =
     variant === "drawer"
       ? "absolute inset-y-0 right-0 z-10 flex w-full max-w-lg flex-col bg-card text-card-foreground shadow-xl pointer-events-auto"
-      : "relative z-10 mx-auto mt-[8vh] flex max-h-[84vh] w-full max-w-lg flex-col rounded-xl bg-card text-card-foreground shadow-xl ring-1 ring-foreground/10 pointer-events-auto";
+      : size === "lg"
+        ? "relative z-10 mx-auto mt-[6vh] flex max-h-[88vh] w-full max-w-2xl flex-col rounded-xl bg-card text-card-foreground shadow-xl ring-1 ring-foreground/10 pointer-events-auto"
+        : "relative z-10 mx-auto mt-[8vh] flex max-h-[84vh] w-full max-w-lg flex-col rounded-xl bg-card text-card-foreground shadow-xl ring-1 ring-foreground/10 pointer-events-auto";
 
   return (
     <div className="fixed inset-0 z-[2000]" role="presentation" data-hh-overlay="">

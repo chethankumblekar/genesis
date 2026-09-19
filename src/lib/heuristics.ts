@@ -30,12 +30,14 @@ export type ExtractedHints = {
   bhk?: number;
   area?: Area;
   society?: string;
+  address?: string;
   parking?: Parking;
   furnished?: Furnished;
   source?: Source;
   url?: string;
   photoUrls?: string[];
   notes?: string;
+  contact?: string;
 };
 
 export function sourceFromUrl(url: string): Source | undefined {
@@ -45,6 +47,7 @@ export function sourceFromUrl(url: string): Source | undefined {
     if (host.includes("facebook") || host.includes("fb.com")) return "Facebook";
     if (host.includes("housing")) return "Housing";
     if (host.includes("99acres")) return "99acres";
+    if (host.includes("magicbricks")) return "other";
   } catch {
     return undefined;
   }
@@ -71,11 +74,14 @@ export function extractHints(text: string, url?: string): ExtractedHints {
     blob.match(
       /(?:rent(?:al)?|pcm|per month|\/mo|\/month|pm)\D{0,12}(?:₹|rs\.?)?\s*([0-9]{1,2}[,\d]{2,6}|[0-9]{1,2}(?:\.\d)?\s*k)/i
     ) ||
-    blob.match(/\b([0-9]{1,2}(?:\.\d)?)\s*k(?:\/mo|\/month|\s*rent)?\b/i);
+    blob.match(/\b([0-9]{1,2}(?:\.\d)?)\s*k(?:\/mo|\/month|\s*rent)?\b/i) ||
+    blob.match(/\b([0-9]{2,3})\s*(?:thousand)\b/i);
 
   if (rentMatch?.[1]) {
-    const token = rentMatch[1].toLowerCase().includes("k")
-      ? String(Number(rentMatch[1].toLowerCase().replace("k", "").trim()) * 1000)
+    const token = /k|thousand/i.test(rentMatch[1])
+      ? String(
+          Number(rentMatch[1].toLowerCase().replace(/k|thousand/gi, "").trim()) * 1000
+        )
       : rentMatch[1];
     hints.rent = parseMoney(token);
   }
@@ -133,6 +139,14 @@ export function extractHints(text: string, url?: string): ExtractedHints {
       hints.society = societyMatch[1].trim();
     }
   }
+
+  const near = blob.match(
+    /\b(?:near|opp(?:osite)?|behind|beside)\s+([A-Za-z0-9][A-Za-z0-9 .'&-]{3,40})/i
+  );
+  if (near?.[1]) hints.address = near[0].replace(/\s+/g, " ").trim();
+
+  const phoneMatch = blob.match(/(?:\+91[\s-]?)?[6-9]\d{9}\b/);
+  if (phoneMatch) hints.contact = phoneMatch[0].replace(/\s+/g, "");
 
   if (url) {
     hints.url = url;

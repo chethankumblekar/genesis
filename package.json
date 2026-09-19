@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start --hostname 0.0.0.0 --port 43123",
     "lint": "eslint",
+    "test": "npx --yes tsx --test src/lib/extract-listings.test.ts",
     "db:up": "docker compose up db -d"
   },
   "dependencies": {
