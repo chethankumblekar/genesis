@@ -106,8 +106,8 @@ export function ListingFormSheet({
   onOpenChange: (open: boolean) => void;
   listing: Listing | null;
   draft: ListingDraft | null;
-  onSave: (listing: Listing) => void | Promise<void>;
-  onDelete?: (id: string) => void | Promise<void>;
+  onSave: (listing: Listing) => void | Promise<unknown>;
+  onDelete?: (id: string) => void | Promise<unknown>;
 }) {
   const formKey = `${listing?.id ?? "new"}-${draft?.society ?? ""}-${draft?.url ?? ""}`;
   return (
@@ -142,8 +142,8 @@ function ListingFormBody({
   listing: Listing | null;
   draft: ListingDraft | null;
   onOpenChange: (open: boolean) => void;
-  onSave: (listing: Listing) => void | Promise<void>;
-  onDelete?: (id: string) => void | Promise<void>;
+  onSave: (listing: Listing) => void | Promise<unknown>;
+  onDelete?: (id: string) => void | Promise<unknown>;
 }) {
   const [form, setForm] = useState<FormState>(() =>
     listingToForm(listing ?? emptyListing(draft ?? {}))
