@@ -20,7 +20,7 @@ import {
 } from "@/lib/types";
 
 export function HuntApp() {
-  const { listings, upsert, update, remove, replaceAll } = useListings();
+  const { listings, ready, error, upsert, update, remove, replaceAll } = useListings();
   const fileRef = useRef<HTMLInputElement>(null);
   const [filters, setFilters] = useState<Filters>({
     maxRent: DEFAULT_MAX_RENT,
@@ -75,13 +75,15 @@ export function HuntApp() {
   function onImportFile(file: File) {
     const reader = new FileReader();
     reader.onload = () => {
-      try {
-        const incoming = parseImport(String(reader.result));
-        replaceAll(mergeListings(listings, incoming));
-        setImportMsg(`Imported ${incoming.length} listing(s). Same IDs were updated.`);
-      } catch (err) {
-        setImportMsg(err instanceof Error ? err.message : "Import failed.");
-      }
+      void (async () => {
+        try {
+          const incoming = parseImport(String(reader.result));
+          await replaceAll(mergeListings(listings, incoming));
+          setImportMsg(`Imported ${incoming.length} listing(s). Same IDs were updated.`);
+        } catch (err) {
+          setImportMsg(err instanceof Error ? err.message : "Import failed.");
+        }
+      })();
     };
     reader.readAsText(file);
   }
@@ -149,8 +151,14 @@ export function HuntApp() {
       </header>
 
       <main className="mx-auto flex w-full max-w-[1400px] flex-1 flex-col gap-4 p-4 md:p-6">
+        {error ? (
+          <p className="text-sm text-destructive">{error}</p>
+        ) : null}
         {importMsg ? (
           <p className="text-sm text-muted-foreground">{importMsg}</p>
+        ) : null}
+        {!ready ? (
+          <p className="text-sm text-muted-foreground">Loading listings from the database…</p>
         ) : null}
 
         <FiltersBar
@@ -181,7 +189,9 @@ export function HuntApp() {
               selectedId={focusId}
               onSelect={setFocusId}
               onEdit={openEdit}
-              onStatus={(id, status) => update(id, { status })}
+              onStatus={(id, status) => {
+                void update(id, { status });
+              }}
             />
           </div>
         </section>

@@ -2,7 +2,7 @@
 
 A shared tracker and map for a Bengaluru 2 BHK hunt: gated society / apartment / service apartment, rent under ₹30,000, parking preferred, move-in around two months. Default areas are **HSR, Harlur, Kudlu, Koramangala, BTM**, plus Nearby.
 
-Listings live in this browser (`localStorage`). There is no login and no database. Share progress with JSON export / import.
+Listings are stored in **Postgres**. JSON export / import remains a backup.
 
 ## Run anywhere (Docker)
 
@@ -12,7 +12,7 @@ Needs Docker Engine with Compose v2 (Docker Desktop, or `docker` + `docker compo
 docker compose up --build
 ```
 
-Open [http://127.0.0.1:43123](http://127.0.0.1:43123). Listings stay in the browser (`localStorage`); the container is stateless.
+Open [http://127.0.0.1:43123](http://127.0.0.1:43123). The app and database start together. Data lives in the `househunting_pg` volume and survives `docker compose down`. Remove it with `docker compose down -v`.
 
 To publish a different host port:
 
@@ -28,16 +28,21 @@ Stop with Ctrl+C, or `docker compose down`.
 
 ## Run locally (Node.js)
 
+Postgres must be running. Easiest:
+
 ```bash
+docker compose up db -d
+cp .env.example .env
 npm install
 npm run dev
 ```
 
 Open [http://127.0.0.1:43123](http://127.0.0.1:43123). The app binds `0.0.0.0` on port **43123**.
 
-Production (recommended for a stable preview without Docker):
+Production (recommended for a stable preview without the full Compose app image):
 
 ```bash
+docker compose up db -d
 npm run build
 npm start
 ```
@@ -51,9 +56,9 @@ Nothing is saved until you confirm **Review in form** and hit **Save listing**. 
 ## Export and import
 
 - **Export JSON** downloads `{ version: 1, exportedAt, listings }`.
-- **Import** merges by listing `id` (incoming rows update matching ids and add new ones). Data stays on the machine that imported the file.
+- **Import** merges by listing `id` (incoming rows update matching ids and add new ones) and writes the result to Postgres.
 
-To reset this browser, clear site data for the app origin or remove the `househunting.listings.v1` key in DevTools.
+If this browser still has old `localStorage` listings and the database is empty, they are imported once on first load.
 
 ## Map
 

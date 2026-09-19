@@ -106,8 +106,8 @@ export function ListingFormSheet({
   onOpenChange: (open: boolean) => void;
   listing: Listing | null;
   draft: ListingDraft | null;
-  onSave: (listing: Listing) => void;
-  onDelete?: (id: string) => void;
+  onSave: (listing: Listing) => void | Promise<void>;
+  onDelete?: (id: string) => void | Promise<void>;
 }) {
   const formKey = `${listing?.id ?? "new"}-${draft?.society ?? ""}-${draft?.url ?? ""}`;
   return (
@@ -142,14 +142,16 @@ function ListingFormBody({
   listing: Listing | null;
   draft: ListingDraft | null;
   onOpenChange: (open: boolean) => void;
-  onSave: (listing: Listing) => void;
-  onDelete?: (id: string) => void;
+  onSave: (listing: Listing) => void | Promise<void>;
+  onDelete?: (id: string) => void | Promise<void>;
 }) {
   const [form, setForm] = useState<FormState>(() =>
     listingToForm(listing ?? emptyListing(draft ?? {}))
   );
   const [geocoding, setGeocoding] = useState(false);
   const [geoMsg, setGeoMsg] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
@@ -180,7 +182,7 @@ function ListingFormBody({
     }
   }
 
-  function handleSave() {
+  async function handleSave() {
     const base = listing ?? emptyListing(draft ?? {});
     let lat = parseNum(form.lat);
     let lng = parseNum(form.lng);
@@ -216,8 +218,16 @@ function ListingFormBody({
       status: form.status,
       updatedAt: new Date().toISOString(),
     };
-    onSave(next);
-    onOpenChange(false);
+    setSaving(true);
+    setSaveError(null);
+    try {
+      await onSave(next);
+      onOpenChange(false);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "Could not save listing");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -475,6 +485,9 @@ function ListingFormBody({
           {geoMsg ? (
             <p className="text-xs text-muted-foreground">{geoMsg}</p>
           ) : null}
+          {saveError ? (
+            <p className="text-xs text-destructive">{saveError}</p>
+          ) : null}
         </div>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-2 border-t bg-muted/40 p-4">
@@ -482,9 +495,20 @@ function ListingFormBody({
             <Button
               type="button"
               variant="destructive"
-              onClick={() => {
-                onDelete(listing.id);
-                onOpenChange(false);
+              disabled={saving}
+              onClick={async () => {
+                setSaving(true);
+                setSaveError(null);
+                try {
+                  await onDelete(listing.id);
+                  onOpenChange(false);
+                } catch (err) {
+                  setSaveError(
+                    err instanceof Error ? err.message : "Could not delete listing"
+                  );
+                } finally {
+                  setSaving(false);
+                }
               }}
             >
               Delete
@@ -493,11 +517,11 @@ function ListingFormBody({
             <span />
           )}
           <div className="flex gap-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" disabled={saving} onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="button" onClick={handleSave}>
-              Save listing
+            <Button type="button" disabled={saving} onClick={handleSave}>
+              {saving ? "Saving…" : "Save listing"}
             </Button>
           </div>
       </div>
