@@ -114,12 +114,24 @@ export function extractHints(text: string, url?: string): ExtractedHints {
   else if (/\bsemi[-\s]?furnished\b/i.test(blob)) hints.furnished = "semi";
   else if (/\b(?:fully\s+)?furnished\b/i.test(blob)) hints.furnished = "fully";
 
-  const societyMatch =
-    blob.match(
-      /\b(?:in|at)\s+([A-Z][A-Za-z0-9 .'&-]{2,40}(?:apartment|apartments|residency|enclave|layout|society|homes|villa|villas|gate)?)/
-    ) || blob.match(/^(.{8,60}?)(?:\s[-–|:]|\s+in\s+)/);
-  if (societyMatch?.[1] && societyMatch[1].length < 60) {
-    hints.society = societyMatch[1].trim();
+  const skipSociety = new Set(AREAS.map((a) => a.toLowerCase()));
+  const properName = blob.match(
+    /\b([A-Z]{2,}(?:\s+[A-Z][a-zA-Z]+){1,4}|\b[A-Z][a-z]+(?:\s+[A-Z][a-zA-Z]+){1,4}\s+(?:Apartment|Apartments|Residency|Enclave|Homes|Villas?|Society|Layout|Gate))\b/
+  );
+  if (properName?.[1] && !skipSociety.has(properName[1].toLowerCase())) {
+    hints.society = properName[1].trim();
+  } else {
+    const societyMatch =
+      blob.match(
+        /\b(?:in|at)\s+([A-Z][A-Za-z0-9 .'&-]{2,40}(?:apartment|apartments|residency|enclave|layout|society|homes|villa|villas|gate)?)/
+      ) || blob.match(/^(.{8,60}?)(?:\s[-–|:]|\s+in\s+)/);
+    if (
+      societyMatch?.[1] &&
+      societyMatch[1].length < 60 &&
+      !skipSociety.has(societyMatch[1].trim().toLowerCase())
+    ) {
+      hints.society = societyMatch[1].trim();
+    }
   }
 
   if (url) {

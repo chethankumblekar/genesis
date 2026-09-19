@@ -265,7 +265,7 @@ function ListingFormBody({
                 <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[80]" alignItemWithTrigger={false}>
                   {AREAS.map((a) => (
                     <SelectItem key={a} value={a}>
                       {a}
@@ -284,7 +284,7 @@ function ListingFormBody({
                 <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[80]" alignItemWithTrigger={false}>
                   {STATUSES.map((s) => (
                     <SelectItem key={s} value={s}>
                       {STATUS_LABELS[s]}
@@ -331,7 +331,7 @@ function ListingFormBody({
                 <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[80]" alignItemWithTrigger={false}>
                   {HOUSING_TYPES.map((t) => (
                     <SelectItem key={t} value={t}>
                       {HOUSING_TYPE_LABELS[t]}
@@ -350,7 +350,7 @@ function ListingFormBody({
                 <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[80]" alignItemWithTrigger={false}>
                   {PARKING.map((p) => (
                     <SelectItem key={p} value={p}>
                       {PARKING_LABELS[p]}
@@ -378,7 +378,7 @@ function ListingFormBody({
                 <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[80]" alignItemWithTrigger={false}>
                   {SOURCES.map((s) => (
                     <SelectItem key={s} value={s}>
                       {SOURCE_LABELS[s]}
@@ -428,7 +428,7 @@ function ListingFormBody({
                 <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[80]" alignItemWithTrigger={false}>
                   {FURNISHED.map((f) => (
                     <SelectItem key={f} value={f}>
                       {FURNISHED_LABELS[f]}
@@ -455,7 +455,7 @@ function ListingFormBody({
                 <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[80]" alignItemWithTrigger={false}>
                   {POWER_BACKUP.map((p) => (
                     <SelectItem key={p} value={p}>
                       {p === "yes" ? "Yes" : p === "no" ? "No" : "Unknown"}
