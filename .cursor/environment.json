@@ -1,0 +1,19 @@
+{
+  "name": "HouseHunting",
+  "user": "ubuntu",
+  "install": "bash .cursor/install.sh",
+  "start": "bash .cursor/start.sh",
+  "terminals": [
+    {
+      "name": "dev",
+      "command": "npm run dev",
+      "description": "Next.js dev server on http://0.0.0.0:43123 (reads DATABASE_URL from .env)."
+    }
+  ],
+  "ports": [
+    {
+      "name": "web",
+      "port": 43123
+    }
+  ]
+}
