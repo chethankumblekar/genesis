@@ -43,7 +43,7 @@ export function Overlay({
       : "relative z-10 mx-auto mt-[8vh] flex max-h-[84vh] w-full max-w-lg flex-col rounded-xl bg-card text-card-foreground shadow-xl ring-1 ring-foreground/10 pointer-events-auto";
 
   return (
-    <div className="fixed inset-0 z-[100]" role="presentation" data-hh-overlay="">
+    <div className="fixed inset-0 z-[2000]" role="presentation" data-hh-overlay="">
       <button
         type="button"
         className="absolute inset-0 z-0 bg-black/40"
@@ -70,7 +70,7 @@ export function Overlay({
             <span className="sr-only">Close</span>
           </Button>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto p-4">{children}</div>
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</div>
         {footer ? (
           <div className="flex flex-wrap items-center justify-end gap-2 border-t bg-muted/40 p-4">
             {footer}

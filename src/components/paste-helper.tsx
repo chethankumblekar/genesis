@@ -102,7 +102,7 @@ export function PasteHelperDialog({
         </>
       }
     >
-      <div className="grid gap-3">
+      <div className="grid gap-3 p-4">
         <div className="grid gap-1.5">
           <Label htmlFor="paste-url">URL</Label>
           <Input

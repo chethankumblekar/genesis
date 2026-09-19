@@ -221,7 +221,9 @@ function ListingFormBody({
   }
 
   return (
-    <div className="grid gap-3">
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="min-h-0 flex-1 overflow-y-auto p-4">
+        <div className="grid gap-3">
           <Field label="Society or building">
             <Input
               value={form.society}
@@ -473,7 +475,9 @@ function ListingFormBody({
           {geoMsg ? (
             <p className="text-xs text-muted-foreground">{geoMsg}</p>
           ) : null}
-        <div className="mt-2 flex flex-wrap items-center justify-between gap-2 border-t pt-3">
+        </div>
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t bg-muted/40 p-4">
           {listing && onDelete ? (
             <Button
               type="button"
@@ -496,7 +500,7 @@ function ListingFormBody({
               Save listing
             </Button>
           </div>
-        </div>
+      </div>
     </div>
   );
 }
