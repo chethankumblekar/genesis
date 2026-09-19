@@ -92,10 +92,14 @@ test("item lists and page JSON yield multiple options", () => {
   assert.ok(candidates.some((c) => /Beta/i.test(c.label)));
 });
 
-test("phone numbers in notes land on the draft", () => {
-  const notes = "2 BHK in Harlur, ₹28,000, parking. Call 9123456789";
-  const { candidates } = extractListingCandidates({ notes });
-  assert.equal(candidates.length, 1);
-  assert.equal(candidates[0].hints.contact, "9123456789");
-  assert.equal(candidateToDraft(candidates[0]).contact, "9123456789");
+test("candidateToDraft always supplies photoUrls so the form can join them", () => {
+  const { candidates } = extractListingCandidates({
+    notes: "2 BHK in Harlur, ₹28,000, parking. Call 9123456789",
+  });
+  const draft = candidateToDraft(candidates[0]);
+  assert.ok(Array.isArray(draft.photoUrls));
+  assert.equal(draft.contact, "9123456789");
+  assert.equal(draft.area, "Harlur");
+  assert.equal(draft.parking, "yes");
+  assert.equal(draft.housingType, undefined);
 });

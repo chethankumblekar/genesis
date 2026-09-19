@@ -209,6 +209,7 @@ export function HuntApp() {
         open={pasteOpen}
         onOpenChange={setPasteOpen}
         onConfirm={(nextDraft) => {
+          setPasteOpen(false);
           setEditing(null);
           setDraft(nextDraft);
           setFormOpen(true);

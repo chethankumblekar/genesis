@@ -78,7 +78,7 @@ function listingToForm(listing: Listing): FormState {
     source: listing.source,
     url: listing.url,
     contact: listing.contact,
-    photoUrls: listing.photoUrls.join("\n"),
+    photoUrls: (listing.photoUrls ?? []).join("\n"),
     notes: listing.notes,
     furnished: listing.furnished,
     floor: listing.floor,

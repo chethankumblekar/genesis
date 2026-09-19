@@ -532,25 +532,26 @@ export function extractListingCandidates(input: {
 
 export function candidateToDraft(candidate: ListingCandidate): ListingDraft {
   const h = candidate.hints;
-  return {
+  const draft: ListingDraft = {
     society: h.society || "",
     address: h.address || "",
     notes: h.notes || "",
     rent: h.rent ?? null,
     deposit: h.deposit ?? null,
     bhk: h.bhk ?? 2,
-    area: h.area,
-    parking: h.parking,
-    furnished: h.furnished,
-    source: h.source,
     url: h.url || "",
-    photoUrls: h.photoUrls,
-    housingType: h.housingType,
     contact: h.contact || "",
+    photoUrls: h.photoUrls?.length ? h.photoUrls : [],
     lat: h.lat ?? null,
     lng: h.lng ?? null,
     status: "new",
   };
+  if (h.area) draft.area = h.area;
+  if (h.parking) draft.parking = h.parking;
+  if (h.furnished) draft.furnished = h.furnished;
+  if (h.source) draft.source = h.source;
+  if (h.housingType) draft.housingType = h.housingType;
+  return draft;
 }
 
 export function fragileHostMessage(url: string): { skip: boolean; message: string } | null {
