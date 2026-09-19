@@ -1,8 +1,9 @@
 # HouseHunting — Docker Desktop / Engine / Compose v2
 #
-#   git checkout cursor/docker-compose-anywhere-ae2a   # until this lands on main
-#   docker compose up --build
+#   git pull && docker compose up --build
 #   open http://127.0.0.1:43123
+#
+# Docker Desktop → Containers should show househunting-db-1 and househunting-app-1.
 #
 # If host port 5432 is already taken (local Postgres): DB_PORT=5433 docker compose up --build
 # If host port 43123 is taken: APP_PORT=8080 docker compose up --build

@@ -6,29 +6,32 @@ Listings are stored in **Postgres**. JSON export / import remains a backup.
 
 ## Run on your computer (Docker Desktop)
 
-Install [Docker Desktop](https://docs.docker.com/get-started/get-docker/) (or Docker Engine + Compose v2). No Node.js install is required.
+Nothing from the cloud agent shows up in **your** Docker Desktop. You have to start the stack on this machine.
 
-This stack currently lives on branch `cursor/docker-compose-anywhere-ae2a` (not `main` yet).
+1. Install and **start** [Docker Desktop](https://docs.docker.com/get-started/get-docker/) (whale icon in the menu bar / tray).
+2. In a terminal, from this repo:
 
 ```bash
 git clone https://github.com/chethankumblekar/genesis.git
 cd genesis
-git checkout cursor/docker-compose-anywhere-ae2a
-docker compose up --build
-```
-
-If you already have the repo:
-
-```bash
-git fetch origin
-git checkout cursor/docker-compose-anywhere-ae2a
+git checkout main
 git pull
 docker compose up --build
 ```
 
-Open [http://127.0.0.1:43123](http://127.0.0.1:43123). Compose starts the app and Postgres together. Listings persist in the Docker volume `househunting_pg`.
+If you already cloned:
 
-Stop with Ctrl+C, or `docker compose down`. Wipe data with `docker compose down -v`.
+```bash
+cd genesis
+git checkout main
+git pull
+docker compose up --build
+```
+
+3. Wait until you see `househunting-app-1` and `househunting-db-1` as **Running** in Docker Desktop → **Containers**.
+4. Open [http://127.0.0.1:43123](http://127.0.0.1:43123).
+
+Stop with Ctrl+C in that terminal, or click Stop in Docker Desktop. Wipe data with `docker compose down -v`.
 
 Port already in use:
 
