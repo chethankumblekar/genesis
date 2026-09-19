@@ -29,6 +29,7 @@ export function ListingMap({
   const markersRef = useRef<LeafletMarker[]>([]);
   const onEditRef = useRef(onEdit);
   const [mapReady, setMapReady] = useState(0);
+  const [mapError, setMapError] = useState<string | null>(null);
 
   useEffect(() => {
     onEditRef.current = onEdit;
@@ -40,20 +41,25 @@ export function ListingMap({
     let cancelled = false;
 
     void (async () => {
-      const leaflet = await import("leaflet");
-      const L = leaflet.default;
-      if (cancelled || mapRef.current) return;
-      const map = L.map(el, { scrollWheelZoom: true }).setView(
-        [SOUTH_BENGALURU.lat, SOUTH_BENGALURU.lng],
-        13
-      );
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution:
-          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      }).addTo(map);
-      mapRef.current = map;
-      setMapReady((n) => n + 1);
-      requestAnimationFrame(() => map.invalidateSize());
+      try {
+        const leafletMod = await import("leaflet");
+        const L = (leafletMod.default ?? leafletMod) as typeof import("leaflet");
+        if (cancelled || mapRef.current || !el.isConnected) return;
+        const map = L.map(el, { scrollWheelZoom: true }).setView(
+          [SOUTH_BENGALURU.lat, SOUTH_BENGALURU.lng],
+          13
+        );
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          attribution:
+            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        }).addTo(map);
+        mapRef.current = map;
+        setMapError(null);
+        setMapReady((n) => n + 1);
+        requestAnimationFrame(() => map.invalidateSize());
+      } catch (err) {
+        setMapError(err instanceof Error ? err.message : "Map failed to load");
+      }
     })();
 
     return () => {
@@ -84,8 +90,8 @@ export function ListingMap({
     let cancelled = false;
 
     void (async () => {
-      const leaflet = await import("leaflet");
-      const L = leaflet.default;
+      const leafletMod = await import("leaflet");
+      const L = (leafletMod.default ?? leafletMod) as typeof import("leaflet");
       if (cancelled || mapRef.current !== map) return;
 
       markersRef.current.forEach((m) => m.remove());
@@ -131,8 +137,13 @@ export function ListingMap({
   }, [listings, mapReady]);
 
   return (
-    <div className="relative h-full w-full">
+    <div className="relative h-full min-h-[280px] w-full bg-[#e8e4d8]">
       <div ref={containerRef} className="h-full w-full rounded-xl" />
+      {mapError ? (
+        <p className="absolute inset-x-3 bottom-3 rounded-md bg-card/90 p-2 text-xs text-destructive">
+          Map error: {mapError}
+        </p>
+      ) : null}
     </div>
   );
 }

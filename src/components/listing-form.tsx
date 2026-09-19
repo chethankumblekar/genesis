@@ -15,6 +15,7 @@ import {
 import { Overlay } from "@/components/overlay";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  AREA_CENTERS,
   HOUSING_TYPE_LABELS,
   PARKING_LABELS,
   SOURCE_LABELS,
@@ -165,7 +166,9 @@ function ListingFormBody({
       const res = await fetch(`/api/geocode?q=${encodeURIComponent(q)}`);
       const data = (await res.json()) as { lat: number | null; lng: number | null };
       if (data.lat == null || data.lng == null) {
-        setGeoMsg("No match. Drop a pin by typing lat/lng, or try a nearby landmark.");
+        const c = AREA_CENTERS[form.area];
+        setForm((f) => ({ ...f, lat: String(c.lat), lng: String(c.lng) }));
+        setGeoMsg("No exact match — pinned at the area center.");
         return;
       }
       setForm((f) => ({ ...f, lat: String(data.lat), lng: String(data.lng) }));
@@ -193,6 +196,11 @@ function ListingFormBody({
       } catch {
         /* keep null */
       }
+    }
+    if (lat == null || lng == null) {
+      const c = AREA_CENTERS[form.area];
+      lat = c.lat;
+      lng = c.lng;
     }
     const next: Listing = {
       ...base,

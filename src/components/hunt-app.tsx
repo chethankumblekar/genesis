@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { Download, MapPin, Plus, Upload } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { MapPin } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
 import { FiltersBar } from "@/components/filters-bar";
 import { ListingBoard } from "@/components/listing-board";
 import { ListingFormSheet } from "@/components/listing-form";
@@ -20,7 +20,7 @@ import {
 } from "@/lib/types";
 
 export function HuntApp() {
-  const { listings, ready, upsert, update, remove, replaceAll } = useListings();
+  const { listings, upsert, update, remove, replaceAll } = useListings();
   const fileRef = useRef<HTMLInputElement>(null);
   const [filters, setFilters] = useState<Filters>({
     maxRent: DEFAULT_MAX_RENT,
@@ -105,21 +105,34 @@ export function HuntApp() {
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="outline" onClick={() => setPasteOpen(true)}>
+            <button
+              type="button"
+              className={buttonVariants({ variant: "outline" })}
+              onClick={() => setPasteOpen(true)}
+            >
               Paste URL or notes
-            </Button>
-            <Button type="button" onClick={openNew}>
-              <Plus data-icon="inline-start" />
-              Add listing
-            </Button>
-            <Button type="button" variant="outline" onClick={exportJson}>
-              <Download data-icon="inline-start" />
+            </button>
+            <button
+              type="button"
+              className={buttonVariants()}
+              onClick={openNew}
+            >
+              + Add listing
+            </button>
+            <button
+              type="button"
+              className={buttonVariants({ variant: "outline" })}
+              onClick={exportJson}
+            >
               Export JSON
-            </Button>
-            <Button type="button" variant="outline" onClick={() => fileRef.current?.click()}>
-              <Upload data-icon="inline-start" />
+            </button>
+            <button
+              type="button"
+              className={buttonVariants({ variant: "outline" })}
+              onClick={() => fileRef.current?.click()}
+            >
               Import
-            </Button>
+            </button>
             <input
               ref={fileRef}
               type="file"
@@ -136,9 +149,6 @@ export function HuntApp() {
       </header>
 
       <main className="mx-auto flex w-full max-w-[1400px] flex-1 flex-col gap-4 p-4 md:p-6">
-        {!ready ? (
-          <p className="text-sm text-muted-foreground">Loading saved listings…</p>
-        ) : null}
         {importMsg ? (
           <p className="text-sm text-muted-foreground">{importMsg}</p>
         ) : null}

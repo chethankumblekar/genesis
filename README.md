@@ -11,13 +11,13 @@ npm install
 npm run dev
 ```
 
-Open [http://127.0.0.1:43123](http://127.0.0.1:43123). The dev server binds `0.0.0.0` on port **43123**.
+Open [http://127.0.0.1:43123](http://127.0.0.1:43123). The app binds `0.0.0.0` on port **43123**.
 
-Production:
+Production (recommended for a stable preview):
 
 ```bash
 npm run build
-npm start -- --hostname 0.0.0.0 --port 43123
+npm start
 ```
 
 ## Paste helper

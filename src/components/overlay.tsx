@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, type ReactNode } from "react";
-import { createPortal } from "react-dom";
 import { XIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -36,15 +35,15 @@ export function Overlay({
     };
   }, [open, onClose]);
 
-  if (!open || typeof document === "undefined") return null;
+  if (!open) return null;
 
   const panel =
     variant === "drawer"
-      ? "absolute inset-y-0 right-0 flex w-full max-w-lg flex-col bg-popover text-popover-foreground shadow-xl"
-      : "relative mx-auto mt-[8vh] flex max-h-[84vh] w-full max-w-lg flex-col rounded-xl bg-popover text-popover-foreground shadow-xl ring-1 ring-foreground/10";
+      ? "absolute inset-y-0 right-0 flex w-full max-w-lg flex-col bg-card text-card-foreground shadow-xl"
+      : "relative mx-auto mt-[8vh] flex max-h-[84vh] w-full max-w-lg flex-col rounded-xl bg-card text-card-foreground shadow-xl ring-1 ring-foreground/10";
 
-  return createPortal(
-    <div className="fixed inset-0 z-[100]" role="presentation">
+  return (
+    <div className="fixed inset-0 z-[100]" role="presentation" data-hh-overlay="">
       <button
         type="button"
         className="absolute inset-0 bg-black/40"
@@ -78,7 +77,6 @@ export function Overlay({
           </div>
         ) : null}
       </div>
-    </div>,
-    document.body
+    </div>
   );
 }

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { SOUTH_BENGALURU } from "@/lib/constants";
+import { AREA_CENTERS, SOUTH_BENGALURU } from "@/lib/constants";
+import { AREAS, type Area } from "@/lib/types";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -32,14 +33,23 @@ export async function GET(request: Request) {
     }
     const data = (await res.json()) as { lat: string; lon: string }[];
     const hit = data[0];
-    if (!hit) {
-      return NextResponse.json({ lat: null, lng: null });
+    if (hit) {
+      return NextResponse.json({
+        lat: Number(hit.lat),
+        lng: Number(hit.lon),
+      });
     }
+    const area = AREAS.find((a) => q.toLowerCase().includes(a.toLowerCase()));
+    const fallback = area ? AREA_CENTERS[area as Area] : SOUTH_BENGALURU;
     return NextResponse.json({
-      lat: Number(hit.lat),
-      lng: Number(hit.lon),
+      lat: fallback.lat,
+      lng: fallback.lng,
+      fallback: true,
     });
   } catch {
-    return NextResponse.json({ lat: null, lng: null }, { status: 200 });
+    return NextResponse.json(
+      { lat: SOUTH_BENGALURU.lat, lng: SOUTH_BENGALURU.lng, fallback: true },
+      { status: 200 }
+    );
   }
 }
