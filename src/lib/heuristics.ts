@@ -121,22 +121,37 @@ export function extractHints(text: string, url?: string): ExtractedHints {
   else if (/\b(?:fully\s+)?furnished\b/i.test(blob)) hints.furnished = "fully";
 
   const skipSociety = new Set(AREAS.map((a) => a.toLowerCase()));
-  const properName = blob.match(
-    /\b([A-Z]{2,}(?:\s+[A-Z][a-zA-Z]+){1,4}|\b[A-Z][a-z]+(?:\s+[A-Z][a-zA-Z]+){1,4}\s+(?:Apartment|Apartments|Residency|Enclave|Homes|Villas?|Society|Layout|Gate))\b/
+  const isAreaLike = (name: string) => {
+    const lower = name.toLowerCase().trim();
+    if (skipSociety.has(lower) || /^bhk\b/i.test(name)) return true;
+    return AREAS.some(
+      (a) => lower === `${a.toLowerCase()} layout` || lower.startsWith(`${a.toLowerCase()} layout`)
+    );
+  };
+
+  const afterBhk = blob.match(
+    /\b\d(?:\.\d)?\s*-?\s*BHK\s+([A-Z][A-Za-z0-9][A-Za-z0-9 .'&-]{1,40}?)(?:,|\s+(?:in|at|near)\s+|\s+(?:HSR|Harlur|Kudlu|Koramangala|BTM)\b)/
   );
-  if (properName?.[1] && !skipSociety.has(properName[1].toLowerCase())) {
-    hints.society = properName[1].trim();
+  if (afterBhk?.[1] && !isAreaLike(afterBhk[1])) {
+    hints.society = afterBhk[1].trim();
   } else {
-    const societyMatch =
-      blob.match(
-        /\b(?:in|at)\s+([A-Z][A-Za-z0-9 .'&-]{2,40}(?:apartment|apartments|residency|enclave|layout|society|homes|villa|villas|gate)?)/
-      ) || blob.match(/^(.{8,60}?)(?:\s[-–|:]|\s+in\s+)/);
-    if (
-      societyMatch?.[1] &&
-      societyMatch[1].length < 60 &&
-      !skipSociety.has(societyMatch[1].trim().toLowerCase())
-    ) {
-      hints.society = societyMatch[1].trim();
+    const properName = blob.match(
+      /\b([A-Z]{2,}(?:\s+[A-Z][a-zA-Z]+){1,4}|\b[A-Z][a-z]+(?:\s+[A-Z][a-zA-Z]+){1,4}\s+(?:Apartment|Apartments|Residency|Enclave|Homes|Villas?|Society|Layout|Gate))\b/
+    );
+    if (properName?.[1] && !isAreaLike(properName[1])) {
+      hints.society = properName[1].trim();
+    } else {
+      const societyMatch =
+        blob.match(
+          /\b(?:in|at)\s+([A-Z][A-Za-z0-9 .'&-]{2,40}(?:apartment|apartments|residency|enclave|layout|society|homes|villa|villas|gate)?)/
+        ) || blob.match(/^(.{8,60}?)(?:\s[-–|:]|\s+in\s+)/);
+      if (
+        societyMatch?.[1] &&
+        societyMatch[1].length < 60 &&
+        !isAreaLike(societyMatch[1])
+      ) {
+        hints.society = societyMatch[1].trim();
+      }
     }
   }
 

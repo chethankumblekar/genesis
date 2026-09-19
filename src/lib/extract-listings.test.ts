@@ -50,6 +50,8 @@ test("notes split by dashes become a pickable list", () => {
   assert.deepEqual(rents, [26000, 28000]);
   assert.ok(candidates.some((c) => c.hints.area === "Harlur"));
   assert.ok(candidates.some((c) => c.hints.area === "HSR"));
+  assert.ok(candidates.some((c) => c.hints.society === "SNN Raj Serenity"));
+  assert.ok(candidates.some((c) => c.hints.society === "Prestige Park View"));
 });
 
 test("generic Open Graph titles are not used as society names", () => {
