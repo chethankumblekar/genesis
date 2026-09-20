@@ -24,6 +24,7 @@ type ListingsContextValue = {
   ready: boolean;
   error: string | null;
   upsert: (listing: Listing) => Promise<Listing>;
+  addLocal: (listing: Listing) => void;
   update: (id: string, patch: ListingDraft) => Promise<Listing>;
   remove: (id: string) => Promise<void>;
   replaceAll: (listings: Listing[]) => Promise<void>;
@@ -75,6 +76,20 @@ export function ListingsProvider({ children }: { children: ReactNode }) {
     return saved;
   }, []);
 
+  /**
+   * Record a listing the server has already saved (promoting a capture writes
+   * it as part of that request), without POSTing the same row a second time.
+   */
+  const addLocal = useCallback((saved: Listing) => {
+    setListings((prev) => {
+      const idx = prev.findIndex((l) => l.id === saved.id);
+      if (idx === -1) return [saved, ...prev];
+      const next = [...prev];
+      next[idx] = saved;
+      return next;
+    });
+  }, []);
+
   const update = useCallback(async (id: string, patch: ListingDraft) => {
     const saved = await apiPatchListing(id, patch);
     setListings((prev) => prev.map((l) => (l.id === id ? saved : l)));
@@ -95,8 +110,8 @@ export function ListingsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ listings, ready, error, upsert, update, remove, replaceAll }),
-    [listings, ready, error, upsert, update, remove, replaceAll]
+    () => ({ listings, ready, error, upsert, addLocal, update, remove, replaceAll }),
+    [listings, ready, error, upsert, addLocal, update, remove, replaceAll]
   );
 
   return (
