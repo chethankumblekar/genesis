@@ -80,7 +80,23 @@ What we read from a public page, in order:
 3. Open Graph / Twitter title, description, and image, plus visible text
 4. Your notes, including several listings split by `---`, numbered items, or extra `2 BHK` blocks
 
-Each option shows a confidence (high / medium / low), which fields were filled, and what is still missing. Facebook and Instagram are **not fetched** — paste rent, area, and society from the app. NoBroker is tried once; if it blocks, paste the text. This app does not bypass anti-bot walls.
+Each option shows a confidence (high / medium / low), which fields were filled, and what is still missing.
+
+Pasting a **NoBroker or Facebook Marketplace URL does not work**, and no header tuning fixes it: NoBroker serves a JavaScript shell with no listing data in it, and Facebook returns `400` to anything that is not a browser. Use the importer extension for those two.
+
+## Import from your browser (NoBroker, Facebook Marketplace)
+
+`extension/` is an unpacked Chrome extension. It reads listings from pages **you** have already opened and sends them to this app. It does not crawl, schedule, or log in on your behalf, and it bypasses nothing — on Facebook you stay logged in and scroll yourself.
+
+1. Add `SCRAPE_TOKEN=<any string>` to `.env` and restart the app.
+2. Open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked**, pick the `extension/` folder.
+3. Open the extension's **Details → Extension options** and paste the same token. The app URL defaults to `http://127.0.0.1:43123`.
+4. Browse a search on NoBroker or Facebook Marketplace. A pill appears bottom-right: **Import 25 listings**. Click it.
+5. Back in the app, a **N captured** button appears in the header. Review each one, then **Import**, **Edit in form**, or **Reject**.
+
+Nothing reaches your board until you import it. Re-running the import on a page you have already reviewed is a no-op — listings you rejected stay rejected.
+
+Facebook's rental category mixes in furniture and goods, so obvious non-rentals are scored low and collapsed behind **Show N filtered** rather than dropped, in case the filter is wrong.
 
 ## Export and import
 
