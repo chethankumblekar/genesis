@@ -29,6 +29,27 @@ CREATE TABLE IF NOT EXISTS listings (
   updated_at TIMESTAMPTZ NOT NULL
 );
 CREATE INDEX IF NOT EXISTS listings_updated_at_idx ON listings (updated_at DESC);
+
+CREATE TABLE IF NOT EXISTS scraped_listings (
+  id TEXT PRIMARY KEY,
+  source TEXT NOT NULL,
+  external_id TEXT NOT NULL,
+  url TEXT NOT NULL DEFAULT '',
+  raw JSONB NOT NULL DEFAULT '{}'::jsonb,
+  draft JSONB NOT NULL DEFAULT '{}'::jsonb,
+  confidence TEXT NOT NULL DEFAULT 'medium',
+  reasons JSONB NOT NULL DEFAULT '[]'::jsonb,
+  filled JSONB NOT NULL DEFAULT '[]'::jsonb,
+  missing JSONB NOT NULL DEFAULT '[]'::jsonb,
+  status TEXT NOT NULL DEFAULT 'pending',
+  listing_id TEXT,
+  captured_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL,
+  UNIQUE (source, external_id)
+);
+CREATE INDEX IF NOT EXISTS scraped_listings_status_idx
+  ON scraped_listings (status, captured_at DESC);
 `;
 
 export function getDatabaseUrl(): string {
