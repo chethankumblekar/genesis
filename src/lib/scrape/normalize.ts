@@ -65,12 +65,27 @@ export function normalizeCapture(
   if (!draft.address && hints.address) draft.address = hints.address;
   if (draft.contact == null && hints.contact) draft.contact = hints.contact;
 
-  const { confidence, reasons } = scoreCapture(draft, capture.text, source);
+  // Facebook cards carry no locality finer than "Bengaluru, KA", so `area`
+  // usually cannot be read. Leaving it unset is not harmless: `emptyListing()`
+  // defaults to HSR on promote, which would file a listing under an area it
+  // has nothing to do with. "Nearby" is this app's honest catch-all.
+  const areaResolved = draft.area != null;
+  if (!areaResolved) draft.area = "Nearby";
+
+  const { confidence, reasons } = scoreCapture(
+    draft,
+    capture.text,
+    source,
+    areaResolved
+  );
 
   const filled: string[] = [];
   const missing: string[] = [];
   for (const field of REPORTED_FIELDS) {
-    (present(draft, field) ? filled : missing).push(field);
+    // `area` is reported as missing even though it now holds "Nearby", so the
+    // review tray still asks the user to confirm where the place actually is.
+    const ok = field === "area" ? areaResolved : present(draft, field);
+    (ok ? filled : missing).push(field);
   }
 
   return {

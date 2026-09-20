@@ -83,11 +83,21 @@ export function housingTypeFrom(text: string): HousingType | undefined {
   return undefined;
 }
 
-function bhkFrom(line: string | undefined): number | undefined {
+/**
+ * NoBroker says "2 BHK"; Facebook says "2 Beds 2 Baths" or
+ * "2 beds 2 bathrooms - Flat". Match both, and never read the bathroom count
+ * as the bedroom count.
+ */
+export function bhkFrom(line: string | undefined): number | undefined {
   if (!line) return undefined;
-  const m = line.match(/(\d(?:\.\d)?)\s*-?\s*bhk/i);
-  return m ? Number(m[1]) : undefined;
+  const bhk = line.match(/(\d(?:\.\d)?)\s*-?\s*bhk/i);
+  if (bhk) return Number(bhk[1]);
+  const beds = line.match(/(\d(?:\.\d)?)\s*-?\s*bed(?:s|room|rooms)?\b/i);
+  return beds ? Number(beds[1]) : undefined;
 }
+
+/** Marketplace stamps promo badges above the price; they are not the title. */
+const FB_BADGES = /^(just listed|new listing|sponsored|free shipping)$/i;
 
 /**
  * NoBroker search-result card. Verified against live DOM 2026-09-20.
@@ -151,7 +161,7 @@ export function parseFacebookCard(capture: RawCapture): ListingDraft {
   if (bhk != null) draft.bhk = bhk;
 
   // Last line is the locality FB stamps on every card; middle lines are the title.
-  const body = all.filter((l) => !MONEY.test(l));
+  const body = all.filter((l) => !MONEY.test(l) && !FB_BADGES.test(l));
   if (body.length) {
     draft.address = body[body.length - 1];
     const title = body.slice(0, -1).join(" ").trim();

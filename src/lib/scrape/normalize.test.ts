@@ -194,3 +194,63 @@ Apartment Type`;
   assert.ok(result.missing.includes("rent"));
   assert.notEqual(result.confidence, "high");
 });
+
+/* Real Facebook Marketplace cards, captured 2026-09-20. Marketplace never
+   writes "BHK" — it writes "2 Beds 2 Baths". */
+
+test("Facebook bedroom counts are read from Beds, not BHK", () => {
+  const result = normalizeCapture(
+    "facebook",
+    capture("₹26,000\n2 Beds 2 Baths - Apartment\nBengaluru, KA")
+  );
+  assert.equal(result.draft.bhk, 2);
+  assert.equal(result.draft.rent, 26000);
+  assert.equal(result.draft.housingType, "apartment");
+});
+
+test("bathroom count is never mistaken for the bedroom count", () => {
+  const result = normalizeCapture(
+    "facebook",
+    capture("₹25,999\n3 Beds 2 Baths - Apartment\nBengaluru, KA")
+  );
+  assert.equal(result.draft.bhk, 3);
+});
+
+test("'bedrooms'/'bathrooms' long form parses", () => {
+  const result = normalizeCapture(
+    "facebook",
+    capture("₹27,000\n2 beds 2 bathrooms – Flat\nBengaluru, KA")
+  );
+  assert.equal(result.draft.bhk, 2);
+});
+
+test("'Just listed' badge is not treated as the title", () => {
+  const result = normalizeCapture(
+    "facebook",
+    capture("Just listed\n₹18,000\n2 beds 2 bathrooms – Flat\nBengaluru, KA")
+  );
+  assert.ok(!/just listed/i.test(String(result.draft.society)));
+  assert.equal(result.draft.bhk, 2);
+});
+
+test("an unreadable area becomes Nearby, never a silently wrong HSR", () => {
+  const result = normalizeCapture(
+    "facebook",
+    capture("₹19,000\n2 Beds 2 Baths House\nBengaluru, KA")
+  );
+  // emptyListing() would default this to HSR on promote — filing a listing
+  // under an area it has nothing to do with.
+  assert.equal(result.draft.area, "Nearby");
+  assert.ok(result.missing.includes("area"), "tray must still ask about area");
+  assert.notEqual(result.confidence, "high");
+});
+
+test("a recognised area is still reported as filled", () => {
+  const result = normalizeCapture(
+    "facebook",
+    capture("₹19,000\n2 Beds in Koramangala\nBengaluru, KA")
+  );
+  assert.equal(result.draft.area, "Koramangala");
+  assert.ok(result.filled.includes("area"));
+  assert.equal(result.confidence, "high");
+});

@@ -41,12 +41,18 @@ export function looksLikeGoods(text: string): boolean {
 export function scoreCapture(
   draft: ListingDraft,
   rawText: string,
-  source: ScrapeSource
+  source: ScrapeSource,
+  /**
+   * Whether the area was actually recognised. Passed in rather than read off
+   * the draft, because an unrecognised area is filled with a "Nearby"
+   * placeholder that must not count towards confidence.
+   */
+  areaResolved = Boolean(draft.area)
 ): Score {
   const reasons: string[] = [];
   const hasRent = typeof draft.rent === "number" && draft.rent > 0;
   const hasBhk = typeof draft.bhk === "number" && draft.bhk > 0;
-  const hasArea = Boolean(draft.area);
+  const hasArea = areaResolved;
 
   if (source === "facebook" && looksLikeGoods(rawText)) {
     reasons.push("Reads like goods for sale, not a rental");
