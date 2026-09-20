@@ -100,6 +100,28 @@ export function bhkFrom(line: string | undefined): number | undefined {
 const FB_BADGES = /^(just listed|new listing|sponsored|free shipping)$/i;
 
 /**
+ * NoBroker titles are formulaic:
+ *
+ *   "2 BHK Flat For Rent In Hsr Layout"            -> no society, just a type
+ *   "2 BHK Flat In Ambient Asset Homes For Rent"   -> society "Ambient Asset Homes"
+ *
+ * Returning "" (rather than undefined) means "this card definitively has no
+ * society name", so the generic heuristic does not fill it with a fragment of
+ * the title such as "Flat For Rent In".
+ */
+export function noBrokerSociety(title: string | undefined): string | undefined {
+  if (!title) return undefined;
+  const named = title.match(
+    /^\s*[\d.]+\s*BHK\s+.+?\s+In\s+(.+?)\s+For\s+(?:Rent|Lease)\b/i
+  );
+  if (named?.[1]) return named[1].trim();
+  if (/^\s*[\d.]+\s*BHK\s+.+?\s+For\s+(?:Rent|Lease)\s+In\b/i.test(title)) {
+    return "";
+  }
+  return undefined;
+}
+
+/**
  * NoBroker search-result card. Verified against live DOM 2026-09-20.
  * Line 1 is the title, line 2 the address; the rest are value/label stat pairs.
  */
@@ -138,6 +160,9 @@ export function parseNoBrokerCard(capture: RawCapture): ListingDraft {
   if (all[1] && !/^₹/.test(all[1]) && all[1] !== "Explore Nearby") {
     draft.address = all[1];
   }
+
+  const society = noBrokerSociety(all[0]);
+  if (society !== undefined) draft.society = society;
 
   const housingType = housingTypeFrom(`${all[0] ?? ""} ${all[1] ?? ""}`);
   if (housingType) draft.housingType = housingType;

@@ -61,7 +61,11 @@ export function normalizeCapture(
   // `extractHints` sets these too, but the site parser only overrides when it
   // actually found something — so re-apply the hint where the parser was silent.
   if (draft.area == null && hints.area) draft.area = hints.area;
-  if (!draft.society && hints.society) draft.society = hints.society;
+  // An empty string from the NoBroker parser is a decision, not a gap: the
+  // title genuinely names no society, so do not let the heuristic guess one.
+  if (!draft.society && parsed.society !== "" && hints.society) {
+    draft.society = hints.society;
+  }
   if (!draft.address && hints.address) draft.address = hints.address;
   if (draft.contact == null && hints.contact) draft.contact = hints.contact;
 

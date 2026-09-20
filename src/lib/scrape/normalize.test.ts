@@ -254,3 +254,42 @@ test("a recognised area is still reported as filled", () => {
   assert.ok(result.filled.includes("area"));
   assert.equal(result.confidence, "high");
 });
+
+/* NoBroker titles are formulaic; a fragment like "Flat For Rent In" is not a
+   society name. Real titles, captured 2026-09-20. */
+
+test("a formulaic NoBroker title yields no society, not a fragment", () => {
+  const result = normalizeCapture(
+    "nobroker",
+    capture(NOBROKER_CARD.replace(
+      "2 BHK House For Rent In Hsr Layout",
+      "2 BHK Flat For Rent In Koramangala"
+    ))
+  );
+  assert.equal(result.draft.society ?? "", "");
+  assert.ok(result.missing.includes("society"));
+  assert.equal(result.draft.area, "Koramangala");
+});
+
+test("a NoBroker title that does name a society keeps it", () => {
+  const result = normalizeCapture(
+    "nobroker",
+    capture(NOBROKER_CARD.replace(
+      "2 BHK House For Rent In Hsr Layout",
+      "2 BHK Flat In Ambient Asset Homes For Rent In Hsr Layout"
+    ))
+  );
+  assert.equal(result.draft.society, "Ambient Asset Homes");
+  assert.ok(result.filled.includes("society"));
+});
+
+test("a lease title naming a society keeps it too", () => {
+  const result = normalizeCapture(
+    "nobroker",
+    capture(NOBROKER_CARD.replace(
+      "2 BHK House For Rent In Hsr Layout",
+      "2 BHK Flat In Studio Amuse For Lease In Hsr Layout"
+    ))
+  );
+  assert.equal(result.draft.society, "Studio Amuse");
+});
