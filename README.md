@@ -98,6 +98,45 @@ Nothing reaches your board until you import it. Re-running the import on a page 
 
 Facebook's rental category mixes in furniture and goods, so obvious non-rentals are scored low and collapsed behind **Show N filtered** rather than dropped, in case the filter is wrong.
 
+## Where the database lives
+
+Postgres writes to `./data/postgres` on your disk, bind-mounted into the `db`
+container. Point it somewhere else — an external drive, say — with `PG_DATA_DIR`:
+
+```bash
+PG_DATA_DIR=/Volumes/MyDrive/househunting-pg docker compose up --build
+```
+
+The directory is gitignored. `docker compose down -v` no longer deletes your
+listings; it only removes the socket volume. To wipe the database, delete the
+directory yourself.
+
+### Migrating off the old Docker volume
+
+Earlier versions kept the data in a Docker volume named `househunting_pg`. If
+you have listings from before this change, copy them across **once**, before
+starting the stack again — otherwise Postgres initializes an empty database in
+the new directory and your listings will look like they vanished. They are not
+gone; they are still in the old volume until you delete it.
+
+```bash
+docker compose down
+docker run --rm \
+  -v househunting_pg:/from \
+  -v "$PWD/data/postgres:/to" \
+  alpine sh -c 'cp -a /from/. /to/'
+docker compose up -d
+```
+
+Check your listings are there, and only then reclaim the old volume:
+
+```bash
+docker volume rm househunting_pg
+```
+
+If `docker run` reports no such volume, there was nothing to migrate — you were
+already starting fresh.
+
 ## Export and import
 
 - **Export JSON** downloads `{ version: 1, exportedAt, listings }`.

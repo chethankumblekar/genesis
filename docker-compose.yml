@@ -12,7 +12,13 @@
 # After a port change, recreate — Docker Desktop "Start" reuses the old bind:
 #   docker compose down && docker compose up --build
 #
-# Data: Docker volume househunting_pg. Wipe with: docker compose down -v
+# Data lives on your disk at ./data/postgres (override with PG_DATA_DIR, e.g.
+# an external drive). `docker compose down -v` no longer touches it -- it only
+# removes the socket volume. To wipe the database, delete that directory.
+#
+# Mount target must stay /var/lib/postgresql/data: the postgres:16 image
+# declares its VOLUME there, so mounting the parent /var/lib/postgresql instead
+# would silently write to an anonymous volume and lose data on recreate.
 
 name: househunting
 
@@ -25,7 +31,9 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-househunting}
       POSTGRES_DB: ${POSTGRES_DB:-househunting}
     volumes:
-      - househunting_pg:/var/lib/postgresql/data
+      - ${PG_DATA_DIR:-./data/postgres}:/var/lib/postgresql/data
+      # Unix sockets do not work over macOS bind mounts, so the socket
+      # directory shared with the app stays a Docker volume.
       - househunting_pg_run:/var/run/postgresql
     ports:
       - "127.0.0.1:${DB_PORT:-5433}:5432"
@@ -64,5 +72,4 @@ services:
       start_period: 20s
 
 volumes:
-  househunting_pg:
   househunting_pg_run:
