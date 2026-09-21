@@ -5,16 +5,18 @@
 #
 # Docker Desktop → Containers should show househunting-db-1 and househunting-app-1.
 #
-# Host 5432 is usually taken by a local Postgres. The app talks to db over a
-# socket, so this publish is only for host tools (`npm run dev`). Default 5433.
+# Host 5432 is usually taken by a local Postgres. Inside the stack the app
+# reaches db over the compose network, so this publish is only for host tools
+# (`npm run dev`). Default 5433.
 # If 5433 is also taken: DB_PORT=5434 docker compose up --build
 # If host port 43123 is taken: APP_PORT=8080 docker compose up --build
 # After a port change, recreate — Docker Desktop "Start" reuses the old bind:
 #   docker compose down && docker compose up --build
 #
-# Data lives on your disk at ./data/postgres (override with PG_DATA_DIR, e.g.
-# an external drive). `docker compose down -v` no longer touches it -- it only
-# removes the socket volume. To wipe the database, delete that directory.
+# This stack uses no Docker volumes at all. Postgres data lives on your disk at
+# ./data/postgres (override with PG_DATA_DIR, e.g. an external drive), so
+# `docker compose down -v` has nothing to delete. To wipe the database, delete
+# that directory yourself.
 #
 # Mount target must stay /var/lib/postgresql/data: the postgres:16 image
 # declares its VOLUME there, so mounting the parent /var/lib/postgresql instead
@@ -32,9 +34,6 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-househunting}
     volumes:
       - ${PG_DATA_DIR:-./data/postgres}:/var/lib/postgresql/data
-      # Unix sockets do not work over macOS bind mounts, so the socket
-      # directory shared with the app stays a Docker volume.
-      - househunting_pg_run:/var/run/postgresql
     ports:
       - "127.0.0.1:${DB_PORT:-5433}:5432"
     healthcheck:
@@ -56,20 +55,15 @@ services:
         condition: service_healthy
     ports:
       - "127.0.0.1:${APP_PORT:-43123}:43123"
-    volumes:
-      - househunting_pg_run:/var/run/postgresql
     environment:
       NODE_ENV: production
       HOSTNAME: 0.0.0.0
       PORT: "43123"
       NEXT_TELEMETRY_DISABLED: "1"
-      DATABASE_URL: postgres://${POSTGRES_USER:-househunting}:${POSTGRES_PASSWORD:-househunting}@/househunting?host=/var/run/postgresql
+      DATABASE_URL: postgres://${POSTGRES_USER:-househunting}:${POSTGRES_PASSWORD:-househunting}@db:5432/${POSTGRES_DB:-househunting}
     healthcheck:
       test: ["CMD", "node", "healthcheck.js"]
       interval: 15s
       timeout: 5s
       retries: 5
       start_period: 20s
-
-volumes:
-  househunting_pg_run:

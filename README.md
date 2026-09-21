@@ -100,16 +100,18 @@ Facebook's rental category mixes in furniture and goods, so obvious non-rentals 
 
 ## Where the database lives
 
-Postgres writes to `./data/postgres` on your disk, bind-mounted into the `db`
-container. Point it somewhere else — an external drive, say — with `PG_DATA_DIR`:
+The stack uses **no Docker volumes at all**. Postgres writes to `./data/postgres`
+on your disk, bind-mounted into the `db` container, and the app reaches the
+database over the compose network rather than a shared socket. Point the data
+somewhere else — an external drive, say — with `PG_DATA_DIR`:
 
 ```bash
 PG_DATA_DIR=/Volumes/MyDrive/househunting-pg docker compose up --build
 ```
 
-The directory is gitignored. `docker compose down -v` no longer deletes your
-listings; it only removes the socket volume. To wipe the database, delete the
-directory yourself.
+The directory is gitignored. `docker compose down -v` has nothing left to
+delete, so it can no longer take your listings with it. To wipe the database,
+delete the directory yourself.
 
 ### Migrating off the old Docker volume
 
