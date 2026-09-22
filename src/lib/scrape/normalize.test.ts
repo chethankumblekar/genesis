@@ -293,3 +293,57 @@ test("a lease title naming a society keeps it too", () => {
   );
   assert.equal(result.draft.society, "Studio Amuse");
 });
+
+/* Card details the listing schema has no field for. Real values, 2026-09-22. */
+
+const CARD_WITH_FLOOR = `2 BHK Flat In Ambient Asset Homes For Rent In Hsr Layout
+27th Cross Rd, Sector 3
+Explore Nearby
+₹ 24,000
++ 2800
+₹ 2,800
+Maintenance
+Rent
+₹1,20,000
+Deposit
+1,225 sqft
+Builtup
+1/5
+Semi Furnished
+Furnishing
+2 BHK
+Apartment Type
+Family
+Preferred Tenants
+Ready to Move
+Available From`;
+
+test("floor is read from the bare N/M row that has no label", () => {
+  const result = normalizeCapture("nobroker", capture(CARD_WITH_FLOOR));
+  assert.equal(result.draft.floor, "1 of 5");
+  // and the maintenance figure still is not mistaken for rent
+  assert.equal(result.draft.rent, 24000);
+});
+
+test("card details with no schema field are kept in notes", () => {
+  const result = normalizeCapture("nobroker", capture(CARD_WITH_FLOOR));
+  const notes = String(result.draft.notes);
+  assert.match(notes, /1,225 sqft/);
+  assert.match(notes, /Maintenance ₹2,800 extra/);
+  assert.match(notes, /Preferred tenants: Family/);
+});
+
+test("maintenance-included cards say so rather than omitting it", () => {
+  const result = normalizeCapture("nobroker", capture(NOBROKER_CARD));
+  assert.match(String(result.draft.notes), /Maintenance included/);
+  assert.match(String(result.draft.notes), /800 sqft/);
+});
+
+test("a date is never mistaken for a floor", () => {
+  const result = normalizeCapture(
+    "nobroker",
+    capture(CARD_WITH_FLOOR.replace("Ready to Move", "01-Oct-2026"))
+  );
+  assert.equal(result.draft.floor, "1 of 5");
+  assert.equal(result.draft.availableFrom, "01-Oct-2026");
+});

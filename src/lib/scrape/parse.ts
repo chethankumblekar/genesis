@@ -100,6 +100,47 @@ export function bhkFrom(line: string | undefined): number | undefined {
 const FB_BADGES = /^(just listed|new listing|sponsored|free shipping)$/i;
 
 /**
+ * Floor shows up as a bare "1/8" (first of eight) with no label of its own,
+ * sitting between the Builtup and Furnishing rows. Dates on these cards are
+ * written "01-Oct-2026", so a slash pair is unambiguous.
+ */
+export function floorFrom(all: string[]): string | undefined {
+  const line = all.find((l) => /^(?:ground|g|\d{1,2})\s*\/\s*\d{1,2}$/i.test(l));
+  if (!line) return undefined;
+  const [f, total] = line.split("/").map((x) => x.trim());
+  const named = /^(?:ground|g)$/i.test(f) ? "Ground" : f;
+  return `${named} of ${total}`;
+}
+
+/**
+ * Details NoBroker puts on the card that the listing schema has no field for.
+ * They are worth keeping, so they go into notes rather than being dropped.
+ */
+export function noBrokerNotes(all: string[]): string {
+  const bits: string[] = [];
+
+  const builtup = valueBefore(all, "Builtup", (l) => /\bsqft\b/i.test(l));
+  if (builtup) bits.push(`Builtup ${builtup}`);
+
+  const maintenance = valueBefore(all, "Maintenance", (l) => MONEY.test(l));
+  if (maintenance) {
+    const n = money(maintenance);
+    if (n != null) bits.push(`Maintenance ₹${n.toLocaleString("en-IN")} extra`);
+  } else if (all.some((l) => /no extra maintenance/i.test(l))) {
+    bits.push("Maintenance included");
+  }
+
+  const tenants = valueBefore(
+    all,
+    "Preferred Tenants",
+    (l) => /^(family|all|bachelors?|company|anyone)$/i.test(l)
+  );
+  if (tenants) bits.push(`Preferred tenants: ${tenants}`);
+
+  return bits.join(" · ");
+}
+
+/**
  * NoBroker titles are formulaic:
  *
  *   "2 BHK Flat For Rent In Hsr Layout"            -> no society, just a type
@@ -153,8 +194,11 @@ export function parseNoBrokerCard(capture: RawCapture): ListingDraft {
   );
   if (availableFrom) draft.availableFrom = availableFrom;
 
-  const floor = valueBefore(all, "Floor", (l) => /floor|ground|\d/i.test(l));
+  const floor = floorFrom(all);
   if (floor) draft.floor = floor;
+
+  const notes = noBrokerNotes(all);
+  if (notes) draft.notes = notes;
 
   // Line 2 is the address block: "Independent House, Sector 7, Near ...".
   if (all[1] && !/^₹/.test(all[1]) && all[1] !== "Explore Nearby") {
