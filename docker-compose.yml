@@ -60,6 +60,9 @@ services:
       HOSTNAME: 0.0.0.0
       PORT: "43123"
       NEXT_TELEMETRY_DISABLED: "1"
+      # Shared secret for the browser extension's ingest endpoint. Compose reads
+      # it from .env; without it /api/scrape/ingest refuses every request.
+      SCRAPE_TOKEN: ${SCRAPE_TOKEN:-}
       DATABASE_URL: postgres://${POSTGRES_USER:-househunting}:${POSTGRES_PASSWORD:-househunting}@db:5432/${POSTGRES_DB:-househunting}
     healthcheck:
       test: ["CMD", "node", "healthcheck.js"]

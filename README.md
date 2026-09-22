@@ -115,8 +115,11 @@ delete the directory yourself.
 
 ### Migrating off the old Docker volume
 
-Earlier versions kept the data in a Docker volume named `househunting_pg`. If
-you have listings from before this change, copy them across **once**, before
+Earlier versions kept the data in a Docker volume. Compose prefixes volume
+names with the project name, so the volume is `househunting_househunting_pg` —
+check yours with `docker volume ls` rather than assuming.
+
+If you have listings from before this change, copy them across **once**, before
 starting the stack again — otherwise Postgres initializes an empty database in
 the new directory and your listings will look like they vanished. They are not
 gone; they are still in the old volume until you delete it.
@@ -124,7 +127,7 @@ gone; they are still in the old volume until you delete it.
 ```bash
 docker compose down
 docker run --rm \
-  -v househunting_pg:/from \
+  -v househunting_househunting_pg:/from \
   -v "$PWD/data/postgres:/to" \
   alpine sh -c 'cp -a /from/. /to/'
 docker compose up -d
@@ -133,11 +136,12 @@ docker compose up -d
 Check your listings are there, and only then reclaim the old volume:
 
 ```bash
-docker volume rm househunting_pg
+docker volume rm househunting_househunting_pg
 ```
 
-If `docker run` reports no such volume, there was nothing to migrate — you were
-already starting fresh.
+Note that `docker run -v` **creates** a volume that does not exist rather than
+failing, so a wrong name here copies nothing and leaves you with an empty
+database and a stray volume. Confirm the name in `docker volume ls` first.
 
 ## Export and import
 
