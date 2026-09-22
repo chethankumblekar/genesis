@@ -415,3 +415,119 @@ test("a detail capture still parses the fields a card would", () => {
   assert.equal(result.draft.rent, 10000);
   assert.equal(result.draft.bhk, 2);
 });
+
+/**
+ * NoBroker detail page. Condensed from a real capture (2026-09-22) but keeping
+ * every structural trap: a "Rent" nav link above the listing, headline stats
+ * reading value-then-label, an Overview block reading label-then-value, a flat
+ * Amenities list, and an SEO tail advertising other localities.
+ */
+const DETAIL_PAGE = `Pay Tuition Fee
+Post Your Property
+Sign up
+Menu
+Rent
+2 BHK Flat In Prabhavathi Park View For Rent In Singasandra
+Prabhavathi Park View 14th Cross, Kudlu Main Rd, Singasandra, Bengaluru
+₹23,500
++ 1500
+Rent
+1,040
+Sq.Ft
+₹ 1,00,000
+Deposit
+2 Bedroom
+No. of Bedroom
+Apartment
+Property Type
+Anyone
+Preferred Tenant
+Immediately
+Possession
+Bike and Car
+Parking
+>10 Years
+Age of Building
+2
+Balcony
+Overview
+Furnishing Status
+Semi
+Facing
+West
+Water Supply
+Borewell
+Floor
+2/4
+Bathroom
+2
+Gated Security
+Yes
+Amenities
+Lift
+Gym
+Security
+Power backup
+Nearby Localities
+2 BHK Flats for rent in Koramangala
+UnFurnished Flats for rent in Singasandra`;
+
+const detail = (text = DETAIL_PAGE) => ({
+  ...capture(text),
+  kind: "detail" as const,
+});
+
+test("detail page: rent is not read from the navigation link", () => {
+  // The first "Rent" in the document is a nav item with the site header above
+  // it; the real one is four lines below the price.
+  assert.equal(normalizeCapture("nobroker", detail()).draft.rent, 23500);
+});
+
+test("detail page: parking and power backup are finally available", () => {
+  const d = normalizeCapture("nobroker", detail()).draft;
+  assert.equal(d.parking, "yes");
+  assert.equal(d.powerBackup, "yes");
+});
+
+test("detail page: 'None' parking is read as no, not as missing", () => {
+  const d = normalizeCapture(
+    "nobroker",
+    detail(DETAIL_PAGE.replace("Bike and Car", "None"))
+  ).draft;
+  assert.equal(d.parking, "no");
+});
+
+test("detail page: Overview reads label-then-value", () => {
+  const d = normalizeCapture("nobroker", detail()).draft;
+  assert.equal(d.furnished, "semi"); // bare "Semi", not "Semi Furnished"
+  assert.equal(d.floor, "2 of 4");
+});
+
+test("detail page: the SEO tail does not set area or furnishing", () => {
+  const d = normalizeCapture("nobroker", detail()).draft;
+  // The tail advertises Koramangala and "UnFurnished" listings elsewhere.
+  assert.notEqual(d.area, "Koramangala");
+  assert.equal(d.furnished, "semi");
+});
+
+test("detail page: society, deposit and possession", () => {
+  const d = normalizeCapture("nobroker", detail()).draft;
+  assert.equal(d.society, "Prabhavathi Park View");
+  assert.equal(d.deposit, 100000);
+  assert.equal(d.availableFrom, "Immediately");
+  assert.equal(d.bhk, 2);
+});
+
+test("detail page: extras with no schema field land in notes", () => {
+  const notes = String(normalizeCapture("nobroker", detail()).draft.notes);
+  assert.match(notes, /1,040 sqft/);
+  assert.match(notes, /West facing/);
+  assert.match(notes, /Water: Borewell/);
+  assert.match(notes, /Amenities: .*Power backup/);
+});
+
+test("a card capture is still parsed as a card, not a detail page", () => {
+  const d = normalizeCapture("nobroker", capture(NOBROKER_CARD)).draft;
+  assert.equal(d.rent, 10000);
+  assert.equal(d.parking, undefined);
+});

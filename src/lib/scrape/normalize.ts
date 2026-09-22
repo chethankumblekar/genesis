@@ -1,6 +1,6 @@
 import { extractHints } from "../heuristics";
 import type { ListingDraft } from "../types";
-import { parseCard } from "./parse";
+import { lines, parseCard, trimDetailTail } from "./parse";
 import { scoreCapture } from "./score";
 import {
   SCRAPE_SOURCE_LABELS,
@@ -39,7 +39,14 @@ export function normalizeCapture(
   capture: RawCapture
 ): NormalizedCapture {
   const parsed = parseCard(source, capture);
-  const hints = extractHints(capture.text, capture.url);
+
+  // A detail page's SEO tail advertises other localities and furnishing types;
+  // the hint extractor cannot tell those from the listing's own details.
+  const hintText =
+    source === "nobroker" && capture.kind === "detail"
+      ? trimDetailTail(lines(capture.text)).join("\n")
+      : capture.text;
+  const hints = extractHints(hintText, capture.url);
 
   const draft: ListingDraft = {
     ...hints,
@@ -56,6 +63,10 @@ export function normalizeCapture(
   if (source === "nobroker") {
     if (parsed.rent == null) delete draft.rent;
     if (parsed.deposit == null) delete draft.deposit;
+    // The detail page states furnishing outright; a guess must not override it.
+    if (capture.kind === "detail" && parsed.furnished == null) {
+      delete draft.furnished;
+    }
   }
 
   // `extractHints` sets these too, but the site parser only overrides when it

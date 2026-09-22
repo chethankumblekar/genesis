@@ -29,12 +29,23 @@ export function valueBefore(
   label: string,
   matches: (line: string) => boolean
 ): string | undefined {
-  const idx = all.findIndex((line) => line.toLowerCase() === label.toLowerCase());
-  if (idx < 0) return undefined;
-  for (let i = idx - 1; i >= 0; i--) {
-    if (matches(all[i])) return all[i];
+  // Detail pages repeat words like "Rent" in the site navigation, so the first
+  // occurrence of a label is not necessarily the stat. Try each in turn and
+  // take the first that actually has a plausible value above it.
+  for (let idx = 0; idx < all.length; idx++) {
+    if (all[idx].toLowerCase() !== label.toLowerCase()) continue;
+    for (let i = idx - 1; i >= 0; i--) {
+      if (matches(all[i])) return all[i];
+    }
   }
   return undefined;
+}
+
+/** The Overview block reverses the pattern: label first, value on the next line. */
+export function valueAfter(all: string[], label: string): string | undefined {
+  const idx = all.findIndex((l) => l.toLowerCase() === label.toLowerCase());
+  if (idx < 0 || idx + 1 >= all.length) return undefined;
+  return all[idx + 1];
 }
 
 /**
@@ -48,22 +59,25 @@ export function valueBefore(
  * a "Maintenance" label on the way, discard the first figure we meet.
  */
 export function rentFrom(all: string[]): number | undefined {
-  const idx = all.findIndex((line) => line.toLowerCase() === "rent");
-  if (idx < 0) return undefined;
+  // Detail pages carry a "Rent" navigation link above the listing itself, so
+  // try every occurrence and take the first with a figure above it.
+  for (let idx = 0; idx < all.length; idx++) {
+    if (all[idx].toLowerCase() !== "rent") continue;
 
-  let skipNextMoney = false;
-  for (let i = idx - 1; i >= 0; i--) {
-    const line = all[i];
-    if (line.toLowerCase() === "maintenance") {
-      skipNextMoney = true;
-      continue;
+    let skipNextMoney = false;
+    for (let i = idx - 1; i >= 0; i--) {
+      const line = all[i];
+      if (line.toLowerCase() === "maintenance") {
+        skipNextMoney = true;
+        continue;
+      }
+      if (!MONEY.test(line)) continue;
+      if (skipNextMoney) {
+        skipNextMoney = false;
+        continue;
+      }
+      return money(line);
     }
-    if (!MONEY.test(line)) continue;
-    if (skipNextMoney) {
-      skipNextMoney = false;
-      continue;
-    }
-    return money(line);
   }
   return undefined;
 }
@@ -73,6 +87,10 @@ export function furnishedFrom(line: string | undefined): Furnished | undefined {
   if (/\bunfurnished\b/i.test(line)) return "unfurnished";
   if (/\bsemi[-\s]?furnished\b/i.test(line)) return "semi";
   if (/\bfully[-\s]?furnished\b|\bfurnished\b/i.test(line)) return "fully";
+  // The detail page's Overview block writes the value on its own: "Semi".
+  if (/^\s*semi\s*$/i.test(line)) return "semi";
+  if (/^\s*(?:fully|full)\s*$/i.test(line)) return "fully";
+  if (/^\s*(?:none|no)\s*$/i.test(line)) return "unfurnished";
   return undefined;
 }
 
@@ -215,6 +233,142 @@ export function parseNoBrokerCard(capture: RawCapture): ListingDraft {
 }
 
 /**
+ * A listing's own page on NoBroker. Verified against a real capture 2026-09-22.
+ *
+ * Three layouts live in one document: the headline stats read value-then-label
+ * ("₹23,500" / "Rent"), the Overview block reads label-then-value ("Facing" /
+ * "West"), and Amenities is a plain list. The page also opens with site
+ * navigation, so nothing here may assume a fixed line position.
+ */
+export const DETAIL_TAIL_MARKERS = [
+  "Nearby Localities",
+  "People Also Searched For",
+  "Top Localities",
+  "Similar Properties",
+];
+
+/**
+ * Detail pages end in a long SEO tail -- "2 BHK Flats for rent in Koramangala",
+ * "UnFurnished Flats for rent in Singasandra" and so on. Those lines are about
+ * other listings entirely, and the generic hint extractor happily reads an area
+ * and a furnishing status straight out of them. Cut them off.
+ */
+export function trimDetailTail(all: string[]): string[] {
+  let cut = all.length;
+  for (const marker of DETAIL_TAIL_MARKERS) {
+    const idx = all.findIndex((l) => l.toLowerCase() === marker.toLowerCase());
+    if (idx >= 0 && idx < cut) cut = idx;
+  }
+  return all.slice(0, cut);
+}
+
+export function parseNoBrokerDetail(capture: RawCapture): ListingDraft {
+  const all = trimDetailTail(lines(capture.text));
+  const draft: ListingDraft = {};
+
+  // The title is found by shape, not position -- line 1 is a nav link.
+  const titleIdx = all.findIndex((l) =>
+    /^\s*[\d.]+\s*BHK\s+.+\s+For\s+(?:Rent|Lease)\s+In\b/i.test(l)
+  );
+  const title = titleIdx >= 0 ? all[titleIdx] : undefined;
+
+  const rent = rentFrom(all);
+  if (rent != null) draft.rent = rent;
+
+  const depositLine = valueBefore(all, "Deposit", (l) => MONEY.test(l));
+  const deposit = depositLine ? money(depositLine) : undefined;
+  if (deposit != null) draft.deposit = deposit;
+
+  const bhk =
+    bhkFrom(valueBefore(all, "No. of Bedroom", (l) => /bedroom|bhk/i.test(l))) ??
+    bhkFrom(title);
+  if (bhk != null) draft.bhk = bhk;
+
+  // "Bike and Car", "Car", "Bike", or "None".
+  const parking = valueBefore(all, "Parking", (l) =>
+    /^(?:bike|car|bike and car|car and bike|none|no)\b/i.test(l)
+  );
+  if (parking) {
+    draft.parking = /^(?:none|no)\b/i.test(parking) ? "no" : "yes";
+  }
+
+  // Amenities is a flat list, so presence of the line is the answer.
+  const hasAmenity = (name: RegExp) => all.some((l) => name.test(l));
+  if (hasAmenity(/^power\s*back\s*up$/i)) draft.powerBackup = "yes";
+
+  const furnished = furnishedFrom(valueAfter(all, "Furnishing Status"));
+  if (furnished) draft.furnished = furnished;
+
+  const floor = floorFrom(all);
+  if (floor) draft.floor = floor;
+
+  const possession = valueBefore(
+    all,
+    "Possession",
+    (l) => /immediate|ready|\b\d{4}\b|\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i.test(l)
+  );
+  if (possession) draft.availableFrom = possession;
+
+  const society = noBrokerSociety(title);
+  if (society !== undefined) draft.society = society;
+
+  // The address is the line under the title, before the price block.
+  if (titleIdx >= 0 && all[titleIdx + 1] && !MONEY.test(all[titleIdx + 1])) {
+    draft.address = all[titleIdx + 1];
+  }
+
+  const housingType = housingTypeFrom(
+    `${title ?? ""} ${valueBefore(all, "Property Type", (l) => /apartment|flat|villa|house|independent/i.test(l)) ?? ""}`
+  );
+  if (housingType) draft.housingType = housingType;
+
+  const notes = noBrokerDetailNotes(all);
+  if (notes) draft.notes = notes;
+
+  return draft;
+}
+
+/** Detail-page extras the listing schema has no field for. */
+export function noBrokerDetailNotes(all: string[]): string {
+  const bits: string[] = [];
+
+  const sqft = valueBefore(all, "Sq.Ft", (l) => /^[\d,]+$/.test(l));
+  if (sqft) bits.push(`Builtup ${sqft} sqft`);
+
+  const facing = valueAfter(all, "Facing");
+  if (facing && /^(north|south|east|west)/i.test(facing)) bits.push(`${facing} facing`);
+
+  const bathroom = valueAfter(all, "Bathroom");
+  if (bathroom && /^\d+$/.test(bathroom)) bits.push(`${bathroom} bathroom(s)`);
+
+  const balcony = valueBefore(all, "Balcony", (l) => /^\d+$/.test(l));
+  if (balcony) bits.push(`${balcony} balcony(s)`);
+
+  const water = valueAfter(all, "Water Supply");
+  if (water && /borewell|corporation|both/i.test(water)) bits.push(`Water: ${water}`);
+
+  const age = valueBefore(all, "Age of Building", (l) => /year/i.test(l));
+  if (age) bits.push(`Age: ${age}`);
+
+  const tenants = valueBefore(all, "Preferred Tenant", (l) =>
+    /^(family|all|anyone|bachelors?|company)$/i.test(l)
+  );
+  if (tenants) bits.push(`Preferred tenants: ${tenants}`);
+
+  const amenities = [
+    "Lift",
+    "Gym",
+    "Security",
+    "Power backup",
+    "Rain water harvesting",
+    "Children's play area",
+  ].filter((a) => all.some((l) => l.toLowerCase() === a.toLowerCase()));
+  if (amenities.length) bits.push(`Amenities: ${amenities.join(", ")}`);
+
+  return bits.join(" · ");
+}
+
+/**
  * Facebook Marketplace card: "₹20,000" / "1BHK" / "Bengaluru, KA".
  * Far less structured than NoBroker — mostly a price, a free-text title, a locality.
  */
@@ -244,7 +398,8 @@ export function parseFacebookCard(capture: RawCapture): ListingDraft {
 }
 
 export function parseCard(source: ScrapeSource, capture: RawCapture): ListingDraft {
-  return source === "nobroker"
-    ? parseNoBrokerCard(capture)
-    : parseFacebookCard(capture);
+  if (source !== "nobroker") return parseFacebookCard(capture);
+  return capture.kind === "detail"
+    ? parseNoBrokerDetail(capture)
+    : parseNoBrokerCard(capture);
 }

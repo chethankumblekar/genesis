@@ -241,8 +241,9 @@ export function HuntApp({
           {filters.parkingPreferred ? " · hiding no-parking" : ""}
         </p>
 
-        <section className="grid min-h-[320px] flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
-          <div className="hh-map h-[42vh] min-h-[280px] overflow-hidden rounded-xl ring-1 ring-foreground/10 lg:h-auto lg:min-h-[480px]">
+        {/* Map first, full width; the board reads underneath it. */}
+        <section className="flex min-h-[320px] flex-1 flex-col gap-4">
+          <div className="hh-map h-[55vh] min-h-[320px] w-full overflow-hidden rounded-xl ring-1 ring-foreground/10">
             <ListingMap
               listings={visible}
               focusId={focusId}
