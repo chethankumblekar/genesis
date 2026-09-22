@@ -10,9 +10,10 @@ import { ListingMap } from "@/components/listing-map";
 import { PasteHelperDialog } from "@/components/paste-helper";
 import { ScrapeTray } from "@/components/scrape-tray";
 import {
-  apiListPending,
+  apiListCaptures,
   apiPromoteScraped,
   apiRejectScraped,
+  apiRestoreScraped,
 } from "@/lib/scrape/scrape-api";
 import type { ScrapedListing } from "@/lib/scrape/types";
 import { useListings } from "@/lib/listings-context";
@@ -49,6 +50,7 @@ export function HuntApp({
   const [focusArea, setFocusArea] = useState<Area | null>(null);
   const [importMsg, setImportMsg] = useState<string | null>(null);
   const [pending, setPending] = useState<ScrapedListing[]>(initialPending);
+  const [rejected, setRejected] = useState<ScrapedListing[]>([]);
   const [trayOpen, setTrayOpen] = useState(false);
   const [scrapeError, setScrapeError] = useState<string | null>(null);
   /** Set when a capture is being edited in the form, so saving promotes it. */
@@ -56,7 +58,9 @@ export function HuntApp({
 
   const refreshPending = useCallback(async () => {
     try {
-      setPending(await apiListPending());
+      const data = await apiListCaptures();
+      setPending(data.pending);
+      setRejected(data.rejected);
       setScrapeError(null);
     } catch (err) {
       setScrapeError(err instanceof Error ? err.message : "Could not load captures");
@@ -273,6 +277,7 @@ export function HuntApp({
         open={trayOpen}
         onOpenChange={setTrayOpen}
         pending={pending}
+        rejected={rejected}
         error={scrapeError}
         onImport={async (row) => {
           try {
@@ -288,6 +293,14 @@ export function HuntApp({
             await refreshPending();
           } catch (err) {
             setScrapeError(err instanceof Error ? err.message : "Could not reject");
+          }
+        }}
+        onRestore={async (row) => {
+          try {
+            await apiRestoreScraped(row.id);
+            await refreshPending();
+          } catch (err) {
+            setScrapeError(err instanceof Error ? err.message : "Could not restore");
           }
         }}
         onEdit={(row) => {

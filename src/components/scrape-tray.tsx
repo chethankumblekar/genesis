@@ -108,21 +108,26 @@ export function ScrapeTray({
   open,
   onOpenChange,
   pending,
+  rejected,
   error,
   onImport,
   onReject,
+  onRestore,
   onEdit,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   pending: ScrapedListing[];
+  rejected: ScrapedListing[];
   error: string | null;
   onImport: (row: ScrapedListing) => Promise<void>;
   onReject: (row: ScrapedListing) => Promise<void>;
+  onRestore: (row: ScrapedListing) => Promise<void>;
   onEdit: (row: ScrapedListing) => void;
 }) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [showFiltered, setShowFiltered] = useState(false);
+  const [showRejected, setShowRejected] = useState(false);
 
   const { kept, filtered } = useMemo(
     () => ({
@@ -190,6 +195,54 @@ export function ScrapeTray({
                 {filtered.map((row) => (
                   <CaptureRow key={row.id} {...rowProps(row)} />
                 ))}
+              </ul>
+            ) : null}
+          </div>
+        ) : null}
+
+        {rejected.length ? (
+          <div className="mt-6 border-t pt-4">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowRejected((v) => !v)}
+            >
+              {showRejected
+                ? "Hide rejected"
+                : `${rejected.length} rejected — restore any`}
+            </Button>
+            {showRejected ? (
+              <ul className="mt-3 flex flex-col gap-2">
+                {rejected.map((row) => {
+                  const draft = row.draft as ListingDraft;
+                  return (
+                    <li
+                      key={row.id}
+                      className="flex items-center justify-between gap-3 rounded-lg border border-dashed p-2.5"
+                    >
+                      <div className="min-w-0 text-sm">
+                        <p className="truncate text-muted-foreground">
+                          {draft.society?.trim() ||
+                            draft.address?.trim() ||
+                            "Listing"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {summary(draft).join(" · ") || "Nothing read"}
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={busyId === row.id}
+                        onClick={() => void run(row, () => onRestore(row))}
+                      >
+                        Restore
+                      </Button>
+                    </li>
+                  );
+                })}
               </ul>
             ) : null}
           </div>

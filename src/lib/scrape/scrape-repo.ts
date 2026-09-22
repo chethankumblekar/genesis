@@ -200,6 +200,31 @@ export async function listPending(): Promise<ScrapedListing[]> {
   return rows.map(rowToScraped);
 }
 
+/**
+ * Rejecting is easy to do by accident and used to be permanent: a rejected
+ * capture is skipped on re-harvest, so there was no way back to it. The tray
+ * lists these so they can be restored.
+ */
+export async function listRejected(limit = 100): Promise<ScrapedListing[]> {
+  await ensureSchema();
+  const { rows } = await getPool().query<ScrapedRow>(
+    `SELECT * FROM scraped_listings WHERE status = 'rejected'
+     ORDER BY updated_at DESC LIMIT $1`,
+    [limit]
+  );
+  return rows.map(rowToScraped);
+}
+
+export async function restoreScraped(id: string): Promise<ScrapedListing | null> {
+  await ensureSchema();
+  const { rows } = await getPool().query<ScrapedRow>(
+    `UPDATE scraped_listings SET status = 'pending', updated_at = $2
+     WHERE id = $1 AND status = 'rejected' RETURNING *`,
+    [id, new Date().toISOString()]
+  );
+  return rows[0] ? rowToScraped(rows[0]) : null;
+}
+
 export async function getScraped(id: string): Promise<ScrapedListing | null> {
   await ensureSchema();
   const { rows } = await getPool().query<ScrapedRow>(
