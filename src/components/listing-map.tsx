@@ -11,6 +11,7 @@ import {
   STATUS_LABELS,
 } from "@/lib/constants";
 import { formatInr, listingTitle } from "@/lib/format";
+import { mapPositions } from "@/lib/map-position";
 import type { Area, Listing } from "@/lib/types";
 
 export function ListingMap({
@@ -106,19 +107,26 @@ export function ListingMap({
       markersRef.current.forEach((m) => m.remove());
       markersRef.current = [];
 
+      const positions = mapPositions(listings);
+
       listings
-        .filter((l) => l.lat != null && l.lng != null)
+        .filter((l) => positions.has(l.id))
         .forEach((listing) => {
+          const pos = positions.get(listing.id)!;
+          const colour = STATUS_COLORS[listing.status];
+          // An approximate pin is hollow and dashed, so it never reads as a
+          // surveyed position -- it only says "somewhere in this area".
+          const dot = pos.exact
+            ? `background:${colour};border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,.4)`
+            : `background:transparent;border:2px dashed ${colour};opacity:.85`;
           const icon = L.divIcon({
             className: "hh-pin",
-            html: `<span style="background:${STATUS_COLORS[listing.status]};width:16px;height:16px;border-radius:999px;display:block;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,.4)"></span>`,
+            html: `<span style="${dot};width:16px;height:16px;border-radius:999px;display:block"></span>`,
             iconSize: [16, 16],
             iconAnchor: [8, 8],
             popupAnchor: [0, -10],
           });
-          const marker = L.marker([listing.lat as number, listing.lng as number], {
-            icon,
-          }).addTo(map);
+          const marker = L.marker([pos.lat, pos.lng], { icon }).addTo(map);
           const notes = listing.notes
             ? `<p style="margin:4px 0 0;color:#525252;max-width:220px">${escapeHtml(listing.notes).slice(0, 180)}</p>`
             : "";
@@ -129,6 +137,11 @@ export function ListingMap({
               <p style="margin:4px 0 0">${escapeHtml(HOUSING_TYPE_LABELS[listing.housingType])} · ${escapeHtml(PARKING_LABELS[listing.parking])}</p>
               <p style="margin:4px 0 0">${escapeHtml(STATUS_LABELS[listing.status])} · ${escapeHtml(listing.source)}</p>
               ${notes}
+              ${
+                pos.exact
+                  ? ""
+                  : `<p style="margin:6px 0 0;color:#a16207">Approximate — placed in ${escapeHtml(listing.area)} because this listing has no coordinates. Import it from its own page to place it exactly.</p>`
+              }
               <button type="button" data-edit="${listing.id}" style="margin-top:8px">Edit</button>
             </div>`
           );
