@@ -1,12 +1,37 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Overlay } from "@/components/overlay";
 import { formatInr } from "@/lib/format";
-import { SCRAPE_SOURCE_LABELS, type ScrapedListing } from "@/lib/scrape/types";
-import { AREAS, type Area, type ListingDraft } from "@/lib/types";
+import {
+  CONFIDENCES,
+  SCRAPE_SOURCES,
+  SCRAPE_SOURCE_LABELS,
+  type ScrapedListing,
+} from "@/lib/scrape/types";
+import {
+  AREAS,
+  FURNISHED,
+  HOUSING_TYPES,
+  type HousingType,
+  type ListingDraft,
+} from "@/lib/types";
+
+import {
+  EMPTY_FILTER,
+  activeCount,
+  matchesTrayFilter,
+  sortRows,
+  type TrayFilter,
+} from "@/lib/scrape/tray-filter";
+
+const HOUSING_LABELS: Record<HousingType, string> = {
+  gated_society: "gated society",
+  apartment: "apartment",
+  service_apartment: "service apartment",
+};
 
 const CONFIDENCE_META = {
   high: { label: "High", className: "bg-emerald-600/15 text-emerald-800" },
@@ -104,6 +129,231 @@ function CaptureRow({
   );
 }
 
+function Select<T extends string>({
+  label,
+  value,
+  options,
+  onChange,
+  render,
+}: {
+  label: string;
+  value: T | "all";
+  options: readonly T[];
+  onChange: (v: T | "all") => void;
+  render?: (v: T) => string;
+}) {
+  return (
+    <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+      {label}
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value as T | "all")}
+        className="h-8 rounded-md border bg-background px-2 text-sm text-foreground"
+      >
+        <option value="all">all</option>
+        {options.map((o) => (
+          <option key={o} value={o}>
+            {render ? render(o) : o}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function NumberBox({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+      {label}
+      <input
+        type="number"
+        min={0}
+        step={1000}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="any"
+        className="h-8 w-24 rounded-md border bg-background px-2 text-sm text-foreground"
+      />
+    </label>
+  );
+}
+
+function TrayFilters({
+  filter,
+  onChange,
+  showing,
+  total,
+}: {
+  filter: TrayFilter;
+  onChange: (next: TrayFilter) => void;
+  showing: number;
+  total: number;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const active = activeCount(filter);
+  const set = <K extends keyof TrayFilter>(key: K, value: TrayFilter[K]) =>
+    onChange({ ...filter, [key]: value });
+
+  const toggleBhk = (n: number) =>
+    set(
+      "bhk",
+      filter.bhk.includes(n)
+        ? filter.bhk.filter((x) => x !== n)
+        : [...filter.bhk, n]
+    );
+
+  return (
+    <div className="mb-4 rounded-lg border bg-muted/30 p-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => setExpanded((v) => !v)}
+        >
+          {expanded ? "Hide filters" : "Filters"}
+          {active ? ` (${active})` : ""}
+        </Button>
+        <span className="text-xs text-muted-foreground">
+          Showing {showing} of {total}
+        </span>
+        {active || filter.sort !== "captured" ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="ml-auto"
+            onClick={() => onChange(EMPTY_FILTER)}
+          >
+            Clear
+          </Button>
+        ) : null}
+      </div>
+
+      {expanded ? (
+        <div className="mt-3 flex flex-col gap-2.5 border-t pt-3">
+          <input
+            type="search"
+            value={filter.q}
+            onChange={(e) => set("q", e.target.value)}
+            placeholder="Search society, address, notes…"
+            className="h-8 w-full rounded-md border bg-background px-2 text-sm"
+          />
+
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-muted-foreground">BHK</span>
+            {[1, 2, 3, 4].map((n) => (
+              <button
+                key={n}
+                type="button"
+                aria-pressed={filter.bhk.includes(n)}
+                onClick={() => toggleBhk(n)}
+                className={`rounded-full border px-2.5 py-1 text-xs transition-colors ${
+                  filter.bhk.includes(n)
+                    ? "border-transparent bg-primary text-primary-foreground"
+                    : "bg-background hover:bg-accent"
+                }`}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <NumberBox
+              label="Rent ≥"
+              value={filter.minRent}
+              onChange={(v) => set("minRent", v)}
+            />
+            <NumberBox
+              label="≤"
+              value={filter.maxRent}
+              onChange={(v) => set("maxRent", v)}
+            />
+            <NumberBox
+              label="Deposit ≤"
+              value={filter.maxDeposit}
+              onChange={(v) => set("maxDeposit", v)}
+            />
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Select
+              label="Area"
+              value={filter.area}
+              options={AREAS}
+              onChange={(v) => set("area", v)}
+            />
+            <Select
+              label="Source"
+              value={filter.source}
+              options={SCRAPE_SOURCES}
+              onChange={(v) => set("source", v)}
+              render={(v) => SCRAPE_SOURCE_LABELS[v]}
+            />
+            <Select
+              label="Confidence"
+              value={filter.confidence}
+              options={CONFIDENCES}
+              onChange={(v) => set("confidence", v)}
+            />
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Select
+              label="Furnished"
+              value={filter.furnished}
+              options={FURNISHED}
+              onChange={(v) => set("furnished", v)}
+            />
+            <Select
+              label="Type"
+              value={filter.housingType}
+              options={HOUSING_TYPES}
+              onChange={(v) => set("housingType", v)}
+              render={(v) => HOUSING_LABELS[v]}
+            />
+            <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              Sort
+              <select
+                value={filter.sort}
+                onChange={(e) =>
+                  set("sort", e.target.value as TrayFilter["sort"])
+                }
+                className="h-8 rounded-md border bg-background px-2 text-sm text-foreground"
+              >
+                <option value="captured">newest captured</option>
+                <option value="rentAsc">rent: low to high</option>
+                <option value="rentDesc">rent: high to low</option>
+              </select>
+            </label>
+          </div>
+
+          {positiveHint(filter) ? (
+            <p className="text-xs text-muted-foreground">{positiveHint(filter)}</p>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/** Explains the one filter rule that is not obvious from the controls. */
+function positiveHint(f: TrayFilter): string | null {
+  const priced = f.minRent.trim() || f.maxRent.trim() || f.maxDeposit.trim();
+  return priced
+    ? "Listings with no readable rent or deposit are always shown — leases carry none."
+    : null;
+}
+
 export function ScrapeTray({
   open,
   onOpenChange,
@@ -128,57 +378,25 @@ export function ScrapeTray({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [showFiltered, setShowFiltered] = useState(false);
   const [showRejected, setShowRejected] = useState(false);
+  const [filter, setFilter] = useState<TrayFilter>(EMPTY_FILTER);
 
-  // Triage filters. These only narrow what is on screen -- nothing is
-  // discarded, so clearing them brings every capture straight back.
-  const [bhkWanted, setBhkWanted] = useState<number[]>([]);
-  const [maxRent, setMaxRent] = useState("");
-  const [areaWanted, setAreaWanted] = useState<Area | "all">("all");
-
-  const matches = useCallback(
-    (row: ScrapedListing) => {
-      const draft = row.draft as ListingDraft;
-      if (bhkWanted.length) {
-        if (typeof draft.bhk !== "number" || !bhkWanted.includes(draft.bhk)) {
-          return false;
-        }
-      }
-      if (areaWanted !== "all" && draft.area !== areaWanted) return false;
-      const cap = Number(maxRent);
-      // A listing with no readable rent is never hidden by a price filter --
-      // leases have none, and they are the ones worth a look.
-      if (maxRent.trim() && Number.isFinite(cap) && cap > 0) {
-        if (typeof draft.rent === "number" && draft.rent > cap) return false;
-      }
-      return true;
-    },
-    [bhkWanted, areaWanted, maxRent]
+  const visible = useMemo(
+    () => sortRows(pending.filter((r) => matchesTrayFilter(r, filter)), filter.sort),
+    [pending, filter]
   );
-
-  const visible = useMemo(() => pending.filter(matches), [pending, matches]);
   const visibleRejected = useMemo(
-    () => rejected.filter(matches),
-    [rejected, matches]
+    () => sortRows(rejected.filter((r) => matchesTrayFilter(r, filter)), filter.sort),
+    [rejected, filter]
   );
 
-  const { kept, filtered } = useMemo(
+  // Low-confidence captures stay collapsed unless the user filters for them.
+  const { kept, lowConfidence } = useMemo(
     () => ({
       kept: visible.filter((r) => r.confidence !== "low"),
-      filtered: visible.filter((r) => r.confidence === "low"),
+      lowConfidence: visible.filter((r) => r.confidence === "low"),
     }),
     [visible]
   );
-
-  const narrowed = visible.length !== pending.length;
-  const toggleBhk = (n: number) =>
-    setBhkWanted((prev) =>
-      prev.includes(n) ? prev.filter((x) => x !== n) : [...prev, n]
-    );
-  const clearFilters = () => {
-    setBhkWanted([]);
-    setMaxRent("");
-    setAreaWanted("all");
-  };
 
   const run = async (row: ScrapedListing, fn: () => Promise<void>) => {
     setBusyId(row.id);
@@ -208,81 +426,18 @@ export function ScrapeTray({
       <div className="min-h-0 flex-1 overflow-y-auto p-4">
         {error ? <p className="mb-3 text-sm text-destructive">{error}</p> : null}
 
-        {pending.length === 0 ? (
+        {pending.length === 0 && rejected.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             Nothing waiting. Open a NoBroker or Facebook Marketplace search and
             click the import pill.
           </p>
         ) : (
-          <div className="mb-4 flex flex-col gap-2 rounded-lg border bg-muted/30 p-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-medium text-muted-foreground">
-                BHK
-              </span>
-              {[1, 2, 3, 4].map((n) => (
-                <button
-                  key={n}
-                  type="button"
-                  aria-pressed={bhkWanted.includes(n)}
-                  onClick={() => toggleBhk(n)}
-                  className={`rounded-full border px-2.5 py-1 text-xs transition-colors ${
-                    bhkWanted.includes(n)
-                      ? "border-transparent bg-primary text-primary-foreground"
-                      : "bg-background hover:bg-accent"
-                  }`}
-                >
-                  {n}
-                </button>
-              ))}
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <label className="text-xs font-medium text-muted-foreground">
-                Max rent
-              </label>
-              <input
-                type="number"
-                min={0}
-                step={1000}
-                value={maxRent}
-                onChange={(e) => setMaxRent(e.target.value)}
-                placeholder="any"
-                className="h-8 w-24 rounded-md border bg-background px-2 text-sm"
-              />
-              <label className="text-xs font-medium text-muted-foreground">
-                Area
-              </label>
-              <select
-                value={areaWanted}
-                onChange={(e) => setAreaWanted(e.target.value as Area | "all")}
-                className="h-8 rounded-md border bg-background px-2 text-sm"
-              >
-                <option value="all">all</option>
-                {AREAS.map((a) => (
-                  <option key={a} value={a}>
-                    {a}
-                  </option>
-                ))}
-              </select>
-              {narrowed ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={clearFilters}
-                >
-                  Clear
-                </Button>
-              ) : null}
-            </div>
-
-            <p className="text-xs text-muted-foreground">
-              Showing {visible.length} of {pending.length} captured
-              {maxRent.trim()
-                ? " · listings with no readable rent are always shown"
-                : ""}
-            </p>
-          </div>
+          <TrayFilters
+            filter={filter}
+            onChange={setFilter}
+            showing={visible.length}
+            total={pending.length}
+          />
         )}
 
         {pending.length > 0 && visible.length === 0 ? (
@@ -297,7 +452,7 @@ export function ScrapeTray({
           ))}
         </ul>
 
-        {filtered.length ? (
+        {lowConfidence.length ? (
           <div className="mt-4">
             <Button
               type="button"
@@ -306,12 +461,12 @@ export function ScrapeTray({
               onClick={() => setShowFiltered((v) => !v)}
             >
               {showFiltered
-                ? "Hide filtered"
-                : `Show ${filtered.length} filtered`}
+                ? "Hide low confidence"
+                : `Show ${lowConfidence.length} low confidence`}
             </Button>
             {showFiltered ? (
               <ul className="mt-3 flex flex-col gap-3">
-                {filtered.map((row) => (
+                {lowConfidence.map((row) => (
                   <CaptureRow key={row.id} {...rowProps(row)} />
                 ))}
               </ul>
@@ -342,9 +497,7 @@ export function ScrapeTray({
                     >
                       <div className="min-w-0 text-sm">
                         <p className="truncate text-muted-foreground">
-                          {draft.society?.trim() ||
-                            draft.address?.trim() ||
-                            "Listing"}
+                          {draft.society?.trim() || draft.address?.trim() || "Listing"}
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {summary(draft).join(" · ") || "Nothing read"}
