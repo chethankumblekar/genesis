@@ -69,6 +69,16 @@ export function ListingMap({
     };
   }, []);
 
+  // Leaflet caches the container size, so a map whose box changes -- a window
+  // resize, the tray opening -- keeps drawing at the old size and goes grey.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => mapRef.current?.invalidateSize());
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [mapReady]);
+
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
