@@ -1,12 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Overlay } from "@/components/overlay";
 import { formatInr } from "@/lib/format";
 import { SCRAPE_SOURCE_LABELS, type ScrapedListing } from "@/lib/scrape/types";
-import type { ListingDraft } from "@/lib/types";
+import { AREAS, type Area, type ListingDraft } from "@/lib/types";
 
 const CONFIDENCE_META = {
   high: { label: "High", className: "bg-emerald-600/15 text-emerald-800" },
@@ -129,13 +129,56 @@ export function ScrapeTray({
   const [showFiltered, setShowFiltered] = useState(false);
   const [showRejected, setShowRejected] = useState(false);
 
+  // Triage filters. These only narrow what is on screen -- nothing is
+  // discarded, so clearing them brings every capture straight back.
+  const [bhkWanted, setBhkWanted] = useState<number[]>([]);
+  const [maxRent, setMaxRent] = useState("");
+  const [areaWanted, setAreaWanted] = useState<Area | "all">("all");
+
+  const matches = useCallback(
+    (row: ScrapedListing) => {
+      const draft = row.draft as ListingDraft;
+      if (bhkWanted.length) {
+        if (typeof draft.bhk !== "number" || !bhkWanted.includes(draft.bhk)) {
+          return false;
+        }
+      }
+      if (areaWanted !== "all" && draft.area !== areaWanted) return false;
+      const cap = Number(maxRent);
+      // A listing with no readable rent is never hidden by a price filter --
+      // leases have none, and they are the ones worth a look.
+      if (maxRent.trim() && Number.isFinite(cap) && cap > 0) {
+        if (typeof draft.rent === "number" && draft.rent > cap) return false;
+      }
+      return true;
+    },
+    [bhkWanted, areaWanted, maxRent]
+  );
+
+  const visible = useMemo(() => pending.filter(matches), [pending, matches]);
+  const visibleRejected = useMemo(
+    () => rejected.filter(matches),
+    [rejected, matches]
+  );
+
   const { kept, filtered } = useMemo(
     () => ({
-      kept: pending.filter((r) => r.confidence !== "low"),
-      filtered: pending.filter((r) => r.confidence === "low"),
+      kept: visible.filter((r) => r.confidence !== "low"),
+      filtered: visible.filter((r) => r.confidence === "low"),
     }),
-    [pending]
+    [visible]
   );
+
+  const narrowed = visible.length !== pending.length;
+  const toggleBhk = (n: number) =>
+    setBhkWanted((prev) =>
+      prev.includes(n) ? prev.filter((x) => x !== n) : [...prev, n]
+    );
+  const clearFilters = () => {
+    setBhkWanted([]);
+    setMaxRent("");
+    setAreaWanted("all");
+  };
 
   const run = async (row: ScrapedListing, fn: () => Promise<void>) => {
     setBusyId(row.id);
@@ -170,6 +213,82 @@ export function ScrapeTray({
             Nothing waiting. Open a NoBroker or Facebook Marketplace search and
             click the import pill.
           </p>
+        ) : (
+          <div className="mb-4 flex flex-col gap-2 rounded-lg border bg-muted/30 p-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-medium text-muted-foreground">
+                BHK
+              </span>
+              {[1, 2, 3, 4].map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  aria-pressed={bhkWanted.includes(n)}
+                  onClick={() => toggleBhk(n)}
+                  className={`rounded-full border px-2.5 py-1 text-xs transition-colors ${
+                    bhkWanted.includes(n)
+                      ? "border-transparent bg-primary text-primary-foreground"
+                      : "bg-background hover:bg-accent"
+                  }`}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="text-xs font-medium text-muted-foreground">
+                Max rent
+              </label>
+              <input
+                type="number"
+                min={0}
+                step={1000}
+                value={maxRent}
+                onChange={(e) => setMaxRent(e.target.value)}
+                placeholder="any"
+                className="h-8 w-24 rounded-md border bg-background px-2 text-sm"
+              />
+              <label className="text-xs font-medium text-muted-foreground">
+                Area
+              </label>
+              <select
+                value={areaWanted}
+                onChange={(e) => setAreaWanted(e.target.value as Area | "all")}
+                className="h-8 rounded-md border bg-background px-2 text-sm"
+              >
+                <option value="all">all</option>
+                {AREAS.map((a) => (
+                  <option key={a} value={a}>
+                    {a}
+                  </option>
+                ))}
+              </select>
+              {narrowed ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearFilters}
+                >
+                  Clear
+                </Button>
+              ) : null}
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+              Showing {visible.length} of {pending.length} captured
+              {maxRent.trim()
+                ? " · listings with no readable rent are always shown"
+                : ""}
+            </p>
+          </div>
+        )}
+
+        {pending.length > 0 && visible.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            No captures match these filters.
+          </p>
         ) : null}
 
         <ul className="flex flex-col gap-3">
@@ -200,7 +319,7 @@ export function ScrapeTray({
           </div>
         ) : null}
 
-        {rejected.length ? (
+        {visibleRejected.length ? (
           <div className="mt-6 border-t pt-4">
             <Button
               type="button"
@@ -210,11 +329,11 @@ export function ScrapeTray({
             >
               {showRejected
                 ? "Hide rejected"
-                : `${rejected.length} rejected — restore any`}
+                : `${visibleRejected.length} rejected — restore any`}
             </Button>
             {showRejected ? (
               <ul className="mt-3 flex flex-col gap-2">
-                {rejected.map((row) => {
+                {visibleRejected.map((row) => {
                   const draft = row.draft as ListingDraft;
                   return (
                     <li
