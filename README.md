@@ -94,6 +94,23 @@ Pasting a **NoBroker or Facebook Marketplace URL does not work**, and no header 
 4. Browse a search on NoBroker or Facebook Marketplace. A pill appears bottom-right: **Import 25 listings**. Click it.
 5. Back in the app, a **N captured** button appears in the header. Review each one, then **Import**, **Edit in form**, or **Reject**.
 
+### Importing one listing
+
+Open a listing's own page on NoBroker and the pill reads **Import this listing**
+instead. A detail page carries things the search tiles do not — most usefully
+map coordinates, which is what puts a pin on your map.
+
+### Only importing what you want
+
+Extension options has a **What to import** section: tick the bedroom counts you
+want and set a rent range. Listings that do not match are never sent to your
+board, and the pill reports how many it dropped ("12 new, 8 filtered out").
+
+The filter runs in the app after parsing, not in the extension, so it matches on
+the real rent and BHK rather than a second guess at them. Listings whose rent
+cannot be read — leases, mostly — are kept regardless, so they still reach the
+review tray instead of vanishing.
+
 Nothing reaches your board until you import it. Re-running the import on a page you have already reviewed is a no-op — listings you rejected stay rejected.
 
 Facebook's rental category mixes in furniture and goods, so obvious non-rentals are scored low and collapsed behind **Show N filtered** rather than dropped, in case the filter is wrong.

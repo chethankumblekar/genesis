@@ -1,4 +1,8 @@
-const DEFAULTS = { appUrl: "http://127.0.0.1:43123", token: "" };
+const DEFAULTS = {
+  appUrl: "http://127.0.0.1:43123",
+  token: "",
+  filter: { bhk: [], minRent: null, maxRent: null },
+};
 
 async function settings() {
   return { ...DEFAULTS, ...(await chrome.storage.sync.get(DEFAULTS)) };
@@ -9,7 +13,7 @@ async function settings() {
  * carries the extension's own origin instead of nobroker.in / facebook.com.
  */
 async function ingest({ source, items }) {
-  const { appUrl, token } = await settings();
+  const { appUrl, token, filter } = await settings();
 
   if (!token) {
     return { ok: false, error: "Set your token in the extension options" };
@@ -23,7 +27,9 @@ async function ingest({ source, items }) {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ source, items }),
+      // The filter goes with the captures; the app applies it after parsing,
+      // so it runs on real rent/BHK values rather than a second set of regexes.
+      body: JSON.stringify({ source, items, filter }),
     });
   } catch {
     return { ok: false, error: `Can't reach ${appUrl}` };

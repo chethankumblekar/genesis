@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { normalizeCapture } from "./normalize";
+import { isEmptyFilter, matchesFilter, parseFilter } from "./filter";
 import { looksLikeGoods, scoreCapture } from "./score";
 import type { RawCapture } from "./types";
 
@@ -346,4 +347,71 @@ test("a date is never mistaken for a floor", () => {
   );
   assert.equal(result.draft.floor, "1 of 5");
   assert.equal(result.draft.availableFrom, "01-Oct-2026");
+});
+
+/* Import filters. Applied after parsing, so they see real rent/BHK values. */
+
+test("BHK filter keeps only the wanted sizes", () => {
+  assert.equal(matchesFilter({ bhk: 2, rent: 25000 }, { bhk: [2] }).ok, true);
+  assert.equal(matchesFilter({ bhk: 3, rent: 25000 }, { bhk: [2] }).ok, false);
+  assert.equal(matchesFilter({ bhk: 1, rent: 25000 }, { bhk: [1, 2] }).ok, true);
+});
+
+test("rent range filters on the parsed rent", () => {
+  assert.equal(matchesFilter({ rent: 25000 }, { maxRent: 30000 }).ok, true);
+  assert.equal(matchesFilter({ rent: 55400 }, { maxRent: 30000 }).ok, false);
+  assert.equal(matchesFilter({ rent: 8000 }, { minRent: 15000 }).ok, false);
+});
+
+test("a filtered listing explains itself", () => {
+  const v = matchesFilter({ rent: 55400, bhk: 2 }, { maxRent: 30000 });
+  assert.equal(v.ok, false);
+  if (!v.ok) assert.match(v.reason, /55,400.*over.*30,000/);
+});
+
+test("listings with no readable rent survive a price filter", () => {
+  // Lease cards carry no monthly rent; dropping them would hide exactly the
+  // listings that most need a human look.
+  assert.equal(matchesFilter({ bhk: 2 }, { maxRent: 30000 }).ok, true);
+});
+
+test("an empty filter keeps everything", () => {
+  assert.equal(isEmptyFilter({}), true);
+  assert.equal(matchesFilter({ rent: 99999, bhk: 5 }, {}).ok, true);
+});
+
+test("filter input from the extension is sanitised", () => {
+  assert.deepEqual(parseFilter({ bhk: ["2", 3, "x"], maxRent: "30000" }), {
+    bhk: [2, 3],
+    maxRent: 30000,
+  });
+  assert.deepEqual(parseFilter(null), {});
+  assert.deepEqual(parseFilter({ bhk: [], maxRent: 0 }), {});
+});
+
+/* Detail-page captures. Cards never carry coordinates; detail pages do. */
+
+test("coordinates from a detail capture reach the draft", () => {
+  const result = normalizeCapture("nobroker", {
+    ...capture(NOBROKER_CARD),
+    kind: "detail",
+    coords: { lat: 12.9121, lng: 77.6386 },
+  });
+  assert.equal(result.draft.lat, 12.9121);
+  assert.equal(result.draft.lng, 77.6386);
+});
+
+test("a card capture without coordinates leaves them unset", () => {
+  const result = normalizeCapture("nobroker", capture(NOBROKER_CARD));
+  assert.equal(result.draft.lat, undefined);
+  assert.equal(result.draft.lng, undefined);
+});
+
+test("a detail capture still parses the fields a card would", () => {
+  const result = normalizeCapture("nobroker", {
+    ...capture(NOBROKER_CARD),
+    kind: "detail",
+  });
+  assert.equal(result.draft.rent, 10000);
+  assert.equal(result.draft.bhk, 2);
 });

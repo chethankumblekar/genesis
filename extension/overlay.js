@@ -46,8 +46,15 @@
     } catch {
       count = 0;
     }
+    const detail = typeof site.isDetail === "function" && site.isDetail();
     setLabel(
-      count ? `Import ${count} listing${count === 1 ? "" : "s"}` : "No listings on this page"
+      count
+        ? detail
+          ? "Import this listing"
+          : `Import ${count} listing${count === 1 ? "" : "s"}`
+        : detail
+          ? "Couldn't read this listing"
+          : "No listings on this page"
     );
     pill.style.cursor = count ? "pointer" : "default";
   };
@@ -76,10 +83,16 @@
       if (!reply?.ok) {
         setLabel(reply?.error || "Import failed", "error");
       } else {
-        const { added = 0, updated = 0, skipped = 0 } = reply.counts || {};
+        const {
+          added = 0,
+          updated = 0,
+          skipped = 0,
+          filtered = 0,
+        } = reply.counts || {};
         const parts = [`${added} new`];
         if (updated) parts.push(`${updated} updated`);
         if (skipped) parts.push(`${skipped} already seen`);
+        if (filtered) parts.push(`${filtered} filtered out`);
         setLabel(parts.join(", "), "done");
       }
     } catch (err) {

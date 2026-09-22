@@ -69,6 +69,14 @@ export function normalizeCapture(
   if (!draft.address && hints.address) draft.address = hints.address;
   if (draft.contact == null && hints.contact) draft.contact = hints.contact;
 
+  // Only the detail page exposes coordinates; a card capture never has them.
+  const lat = capture.coords?.lat;
+  const lng = capture.coords?.lng;
+  if (typeof lat === "number" && typeof lng === "number") {
+    draft.lat = lat;
+    draft.lng = lng;
+  }
+
   // Facebook cards carry no locality finer than "Bengaluru, KA", so `area`
   // usually cannot be read. Leaving it unset is not harmless: `emptyListing()`
   // defaults to HSR on promote, which would file a listing under an area it

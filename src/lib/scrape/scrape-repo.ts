@@ -1,6 +1,7 @@
 import { ensureSchema, getPool } from "../db";
 import { upsertListing } from "../listings-repo";
 import type { Listing } from "../types";
+import { matchesFilter, type CaptureFilter } from "./filter";
 import { normalizeCapture } from "./normalize";
 import {
   CONFIDENCES,
@@ -98,12 +99,14 @@ function rowToScraped(row: ScrapedRow): ScrapedListing {
   };
 }
 
-export type IngestOutcome = "added" | "updated" | "skipped";
+export type IngestOutcome = "added" | "updated" | "skipped" | "filtered";
 
 export type IngestResult = {
   externalId: string;
   outcome: IngestOutcome;
   confidence?: Confidence;
+  /** Why a capture was filtered out, for the pill's summary. */
+  reason?: string;
 };
 
 /**
@@ -134,7 +137,8 @@ RETURNING (xmax = 0) AS inserted;
 
 export async function ingestCaptures(
   source: ScrapeSource,
-  captures: RawCapture[]
+  captures: RawCapture[],
+  filter: CaptureFilter = {}
 ): Promise<IngestResult[]> {
   await ensureSchema();
   const pool = getPool();
@@ -143,6 +147,19 @@ export async function ingestCaptures(
   for (const capture of captures) {
     if (!capture?.externalId) continue;
     const normalized = normalizeCapture(source, capture);
+
+    // Filter after parsing, before touching the database: an unwanted listing
+    // is never stored, so it cannot clutter the review tray.
+    const verdict = matchesFilter(normalized.draft, filter);
+    if (!verdict.ok) {
+      results.push({
+        externalId: normalized.externalId,
+        outcome: "filtered",
+        reason: verdict.reason,
+      });
+      continue;
+    }
+
     const now = new Date().toISOString();
     const { rows } = await pool.query<{ inserted: boolean }>(INGEST_SQL, [
       crypto.randomUUID(),

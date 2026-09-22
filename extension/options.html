@@ -15,6 +15,10 @@
       input { width: 100%; padding: 0.5rem; border: 1px solid #cbd5e1; border-radius: 6px; font: inherit; }
       button { margin-top: 1.25rem; padding: 0.5rem 1rem; border: 0; border-radius: 6px; background: #0f172a; color: #f8fafc; font: inherit; cursor: pointer; }
       p.hint { color: #475569; font-size: 13px; }
+      h2 { font-size: 15px; margin: 1.75rem 0 0.25rem; }
+      .row { display: flex; gap: 1rem; align-items: flex-end; }
+      .chk { display: inline-flex; align-items: center; gap: 0.35rem; margin: 0; font-weight: 400; }
+      #bhkRow { gap: 0.9rem; }
       #saved { color: #059669; font-weight: 600; min-height: 1.5em; }
     </style>
   </head>
@@ -25,6 +29,30 @@
     <label for="token">Scrape token</label>
     <input id="token" type="password" placeholder="matches SCRAPE_TOKEN in your .env" />
     <p class="hint">Must match <code>SCRAPE_TOKEN</code> in the app's <code>.env</code>. Restart the app after changing it.</p>
+
+    <h2>What to import</h2>
+    <p class="hint">Listings that do not match are never sent to your board. Leave everything blank to import whatever is on the page.</p>
+
+    <label>Bedrooms</label>
+    <div class="row" id="bhkRow">
+      <label class="chk"><input type="checkbox" value="1" /> 1 BHK</label>
+      <label class="chk"><input type="checkbox" value="2" /> 2 BHK</label>
+      <label class="chk"><input type="checkbox" value="3" /> 3 BHK</label>
+      <label class="chk"><input type="checkbox" value="4" /> 4 BHK</label>
+    </div>
+
+    <div class="row">
+      <div style="flex:1">
+        <label for="minRent">Min rent (₹)</label>
+        <input id="minRent" type="number" min="0" step="1000" placeholder="any" />
+      </div>
+      <div style="flex:1">
+        <label for="maxRent">Max rent (₹)</label>
+        <input id="maxRent" type="number" min="0" step="1000" placeholder="any" />
+      </div>
+    </div>
+    <p class="hint">Listings whose rent cannot be read — leases, mostly — are kept regardless, so they still reach the review tray.</p>
+
     <button id="save">Save</button>
     <p id="saved"></p>
     <script src="options.js"></script>

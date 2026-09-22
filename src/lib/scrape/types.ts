@@ -26,6 +26,14 @@ export type RawCapture = {
   text: string;
   imageUrls: string[];
   capturedAt: string;
+  /** "card" is a search-result tile; "detail" is a single listing's own page. */
+  kind?: "card" | "detail";
+  /**
+   * Coordinates, when the page exposes them. Search cards do not; detail pages
+   * carry them for their map, so the extension lifts them out of the embedded
+   * JSON rather than the visible text.
+   */
+  coords?: { lat: number; lng: number };
 };
 
 export type NormalizedCapture = {
