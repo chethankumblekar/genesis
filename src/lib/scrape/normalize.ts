@@ -1,6 +1,7 @@
 import { extractHints } from "../heuristics";
 import type { ListingDraft } from "../types";
 import { lines, parseCard, trimDetailTail } from "./parse";
+import { filterPhotos } from "./photos";
 import { scoreCapture } from "./score";
 import {
   SCRAPE_SOURCE_LABELS,
@@ -53,7 +54,8 @@ export function normalizeCapture(
     ...parsed,
     source: SCRAPE_SOURCE_LABELS[source],
     url: capture.url,
-    photoUrls: capture.imageUrls.filter(Boolean),
+    // Filtered here rather than in the extension so a bad rule is an app fix.
+    photoUrls: filterPhotos(capture.imageUrls, source, capture.externalId),
   };
 
   // NoBroker renders rent and deposit as labelled fields, so the site parser is

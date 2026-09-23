@@ -81,6 +81,25 @@ function CaptureRow({
         <Badge className={meta.className}>{meta.label}</Badge>
       </div>
 
+      {draft.photoUrls?.length ? (
+        <div className="mt-2 flex gap-1.5 overflow-x-auto">
+          {draft.photoUrls.slice(0, 5).map((src) => (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              key={src}
+              src={src}
+              alt=""
+              loading="lazy"
+              className="h-16 w-20 shrink-0 rounded-md object-cover ring-1 ring-foreground/10"
+              onError={(e) => {
+                // A photo the source will not serve us is hidden, not left broken.
+                e.currentTarget.style.display = "none";
+              }}
+            />
+          ))}
+        </div>
+      ) : null}
+
       <p className="mt-2 text-sm">{summary(draft).join(" · ") || "Nothing read"}</p>
 
       {row.missing.length ? (

@@ -112,6 +112,19 @@ function ListingCard({
         <CardTitle className="line-clamp-2">{listingTitle(listing)}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">
+        {listing.photoUrls?.length ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={listing.photoUrls[0]}
+            alt=""
+            loading="lazy"
+            className="h-28 w-full rounded-md object-cover ring-1 ring-foreground/10"
+            onError={(e) => {
+              // Sources expire these links; a dead one should not leave a gap.
+              e.currentTarget.style.display = "none";
+            }}
+          />
+        ) : null}
         <p className="text-sm">
           <span className={over ? "font-medium text-destructive" : "font-medium"}>
             {formatInr(listing.rent)}
