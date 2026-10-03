@@ -25,9 +25,36 @@ CREATE TABLE IF NOT EXISTS listings (
   lat DOUBLE PRECISION,
   lng DOUBLE PRECISION,
   status TEXT NOT NULL DEFAULT 'new',
+  visit_booked TEXT NOT NULL DEFAULT '',
+  visited BOOLEAN NOT NULL DEFAULT false,
+  visit_checks JSONB NOT NULL DEFAULT '[]'::jsonb,
   created_at TIMESTAMPTZ NOT NULL,
   updated_at TIMESTAMPTZ NOT NULL
 );
+ALTER TABLE listings ADD COLUMN IF NOT EXISTS visited BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE listings ADD COLUMN IF NOT EXISTS visit_checks JSONB NOT NULL DEFAULT '[]'::jsonb;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'listings' AND column_name = 'visit_booked'
+  ) THEN
+    ALTER TABLE listings ADD COLUMN visit_booked TEXT NOT NULL DEFAULT '';
+  ELSIF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'listings'
+      AND column_name = 'visit_booked' AND data_type = 'boolean'
+  ) THEN
+    UPDATE listings SET status = 'contacted', visit_booked = true WHERE status = 'visit_booked';
+    UPDATE listings SET status = 'contacted', visit_booked = true, visited = true WHERE status = 'visited';
+    ALTER TABLE listings ALTER COLUMN visit_booked DROP DEFAULT;
+    ALTER TABLE listings
+      ALTER COLUMN visit_booked TYPE TEXT
+      USING CASE WHEN visit_booked THEN to_char(CURRENT_DATE, 'YYYY-MM-DD') ELSE '' END;
+    ALTER TABLE listings ALTER COLUMN visit_booked SET DEFAULT '';
+    ALTER TABLE listings ALTER COLUMN visit_booked SET NOT NULL;
+  END IF;
+END $$;
 CREATE INDEX IF NOT EXISTS listings_updated_at_idx ON listings (updated_at DESC);
 
 CREATE TABLE IF NOT EXISTS scraped_listings (

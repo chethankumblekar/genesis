@@ -1,9 +1,7 @@
 export const STATUSES = [
   "new",
-  "contacted",
-  "visit_booked",
-  "visited",
   "shortlisted",
+  "contacted",
   "rejected",
 ] as const;
 
@@ -54,6 +52,26 @@ export type Furnished = (typeof FURNISHED)[number];
 export const POWER_BACKUP = ["yes", "no", "unknown"] as const;
 export type PowerBackup = (typeof POWER_BACKUP)[number];
 
+export type VisitCheck = {
+  id: string;
+  label: string;
+  checked: boolean;
+};
+
+export const DEFAULT_VISIT_CHECK_LABELS = [
+  "Kitchen is big",
+  "Attached bathroom",
+  "Car parking",
+] as const;
+
+export function defaultVisitChecks(): VisitCheck[] {
+  return DEFAULT_VISIT_CHECK_LABELS.map((label) => ({
+    id: `default:${label}`,
+    label,
+    checked: false,
+  }));
+}
+
 export type Listing = {
   id: string;
   society: string;
@@ -76,6 +94,9 @@ export type Listing = {
   lat: number | null;
   lng: number | null;
   status: Status;
+  visitBooked: string;
+  visited: boolean;
+  visitChecks: VisitCheck[];
   createdAt: string;
   updatedAt: string;
 };
@@ -92,7 +113,6 @@ export type Filters = {
   maxRent: number;
   parkingPreferred: boolean;
   areas: Area[];
-  status: Status | "all";
   source: Source | "all";
 };
 
@@ -122,6 +142,9 @@ export function emptyListing(overrides: ListingDraft = {}): Listing {
     lat: null,
     lng: null,
     status: "new",
+    visitBooked: "",
+    visited: false,
+    visitChecks: [],
     createdAt: now,
     updatedAt: now,
     ...overrides,

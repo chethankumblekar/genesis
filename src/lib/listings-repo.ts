@@ -8,6 +8,7 @@ import {
   STATUSES,
   emptyListing,
   type Listing,
+  type VisitCheck,
 } from "./types";
 import { ensureSchema, getPool } from "./db";
 
@@ -33,6 +34,9 @@ type ListingRow = {
   lat: number | string | null;
   lng: number | string | null;
   status: string;
+  visit_booked: string | boolean | null;
+  visited: boolean | null;
+  visit_checks: unknown;
   created_at: Date | string;
   updated_at: Date | string;
 };
@@ -64,6 +68,61 @@ function asIso(value: unknown): string {
     if (!Number.isNaN(d.getTime())) return d.toISOString();
   }
   return new Date().toISOString();
+}
+
+function asBool(value: unknown): boolean {
+  return value === true || value === "true" || value === "t";
+}
+
+function asVisitDate(value: unknown): string {
+  if (typeof value !== "string") return "";
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : "";
+}
+
+function asVisitChecks(value: unknown): VisitCheck[] {
+  let items = value;
+  if (typeof items === "string") {
+    try {
+      items = JSON.parse(items) as unknown;
+    } catch {
+      return [];
+    }
+  }
+  if (!Array.isArray(items)) return [];
+  return items.flatMap((item) => {
+    if (!item || typeof item !== "object") return [];
+    const rec = item as Record<string, unknown>;
+    const label = asString(rec.label).trim().slice(0, 80);
+    if (!label) return [];
+    return [
+      {
+        id: asString(rec.id) || crypto.randomUUID(),
+        label,
+        checked: asBool(rec.checked),
+      },
+    ];
+  });
+}
+
+// Older rows stored a visit as its own status. Those fold into contacted,
+// with the visit kept as a detail on the card.
+function readProgress(
+  statusRaw: unknown,
+  visitBookedRaw: unknown,
+  visitedRaw: unknown
+): Pick<Listing, "status" | "visitBooked" | "visited"> {
+  const visitBooked = asVisitDate(visitBookedRaw);
+  let visited = asBool(visitedRaw);
+  let statusRawNext = statusRaw;
+  if (statusRaw === "visit_booked" || statusRaw === "visited") {
+    statusRawNext = "contacted";
+    if (statusRaw === "visited") visited = true;
+  }
+  return {
+    status: oneOf(statusRawNext, STATUSES, "new"),
+    visitBooked,
+    visited,
+  };
 }
 
 function asPhotoUrls(value: unknown): string[] {
@@ -109,7 +168,8 @@ export function normalizeListing(input: unknown): Listing {
     powerBackup: oneOf(raw.powerBackup, POWER_BACKUP, base.powerBackup),
     lat: asNumber(raw.lat),
     lng: asNumber(raw.lng),
-    status: oneOf(raw.status, STATUSES, base.status),
+    ...readProgress(raw.status, raw.visitBooked, raw.visited),
+    visitChecks: asVisitChecks(raw.visitChecks),
     createdAt: asString(raw.createdAt) || base.createdAt,
     updatedAt: new Date().toISOString(),
   };
@@ -137,7 +197,8 @@ function rowToListing(row: ListingRow): Listing {
     powerBackup: oneOf(row.power_backup, POWER_BACKUP, "unknown"),
     lat: asNumber(row.lat),
     lng: asNumber(row.lng),
-    status: oneOf(row.status, STATUSES, "new"),
+    ...readProgress(row.status, row.visit_booked, row.visited),
+    visitChecks: asVisitChecks(row.visit_checks),
     createdAt: asIso(row.created_at),
     updatedAt: asIso(row.updated_at),
   };
@@ -147,11 +208,11 @@ const UPSERT_SQL = `
 INSERT INTO listings (
   id, society, address, area, rent, deposit, bhk, housing_type, parking,
   available_from, source, url, contact, photo_urls, notes, furnished, floor,
-  power_backup, lat, lng, status, created_at, updated_at
+  power_backup, lat, lng, status, visit_booked, visited, visit_checks, created_at, updated_at
 ) VALUES (
   $1, $2, $3, $4, $5, $6, $7, $8, $9,
   $10, $11, $12, $13, $14::jsonb, $15, $16, $17,
-  $18, $19, $20, $21, $22, $23
+  $18, $19, $20, $21, $22, $23, $24::jsonb, $25, $26
 )
 ON CONFLICT (id) DO UPDATE SET
   society = EXCLUDED.society,
@@ -174,6 +235,9 @@ ON CONFLICT (id) DO UPDATE SET
   lat = EXCLUDED.lat,
   lng = EXCLUDED.lng,
   status = EXCLUDED.status,
+  visit_booked = EXCLUDED.visit_booked,
+  visited = EXCLUDED.visited,
+  visit_checks = EXCLUDED.visit_checks,
   updated_at = EXCLUDED.updated_at
 RETURNING *;
 `;
@@ -201,6 +265,9 @@ function listingParams(listing: Listing) {
     listing.lat,
     listing.lng,
     listing.status,
+    listing.visitBooked,
+    listing.visited,
+    JSON.stringify(listing.visitChecks),
     listing.createdAt,
     listing.updatedAt,
   ];

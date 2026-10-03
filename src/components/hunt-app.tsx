@@ -25,6 +25,7 @@ import {
   type Filters,
   type Listing,
   type ListingDraft,
+  type Status,
 } from "@/lib/types";
 
 export function HuntApp({
@@ -35,11 +36,11 @@ export function HuntApp({
   const { listings, ready, error, upsert, addLocal, update, remove, replaceAll } =
     useListings();
   const fileRef = useRef<HTMLInputElement>(null);
+  const [listStatus, setListStatus] = useState<Status>("new");
   const [filters, setFilters] = useState<Filters>({
     maxRent: DEFAULT_MAX_RENT,
     parkingPreferred: true,
     areas: [],
-    status: "all",
     source: "all",
   });
   const [formOpen, setFormOpen] = useState(false);
@@ -84,7 +85,6 @@ export function HuntApp({
   const visible = useMemo(() => {
     return listings.filter((l) => {
       if (filters.areas.length && !filters.areas.includes(l.area)) return false;
-      if (filters.status !== "all" && l.status !== filters.status) return false;
       if (filters.source !== "all" && l.source !== filters.source) return false;
       if (filters.parkingPreferred && l.parking === "no") return false;
       return true;
@@ -145,7 +145,7 @@ export function HuntApp({
   }
 
   return (
-    <div className="flex min-h-full flex-col">
+    <div className="flex min-h-full flex-col lg:h-dvh lg:overflow-hidden">
       <header className="border-b bg-card/80 px-4 py-3 backdrop-blur md:px-6">
         <div className="mx-auto flex max-w-[1400px] flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3">
@@ -218,7 +218,7 @@ export function HuntApp({
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-[1400px] flex-1 flex-col gap-4 p-4 md:p-6">
+      <main className="mx-auto flex w-full max-w-[1400px] flex-1 flex-col gap-4 p-4 md:p-6 lg:min-h-0">
         {error ? (
           <p className="text-sm text-destructive">{error}</p>
         ) : null}
@@ -241,9 +241,8 @@ export function HuntApp({
           {filters.parkingPreferred ? " · hiding no-parking" : ""}
         </p>
 
-        {/* Map first, full width; the board reads underneath it. */}
-        <section className="flex min-h-[320px] flex-1 flex-col gap-4">
-          <div className="hh-map h-[55vh] min-h-[320px] w-full overflow-hidden rounded-xl ring-1 ring-foreground/10">
+        <section className="flex min-h-[320px] flex-1 flex-col gap-4 lg:min-h-0 lg:flex-row">
+          <div className="hh-map sticky top-0 z-10 h-[50vh] min-h-[280px] w-full overflow-hidden rounded-xl ring-1 ring-foreground/10 lg:static lg:h-auto lg:min-h-0 lg:flex-1">
             <ListingMap
               listings={visible}
               focusId={focusId}
@@ -251,15 +250,20 @@ export function HuntApp({
               onEdit={openEdit}
             />
           </div>
-          <div className="min-w-0">
+          <div className="flex min-h-0 flex-col lg:h-full lg:w-[380px] lg:shrink-0">
             <ListingBoard
               listings={visible}
+              status={listStatus}
+              onStatusTab={setListStatus}
               maxRent={filters.maxRent}
               selectedId={focusId}
               onSelect={setFocusId}
               onEdit={openEdit}
               onStatus={(id, status) => {
                 void update(id, { status });
+              }}
+              onProgress={(id, patch) => {
+                void update(id, patch);
               }}
             />
           </div>

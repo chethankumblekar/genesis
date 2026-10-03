@@ -2,6 +2,10 @@ import type { Area, HousingType, Parking, Source, Status } from "./types";
 
 export const SOUTH_BENGALURU = { lat: 12.9121, lng: 77.6386 };
 
+// Karnataka Compost Development Centre, between HSR Layout and Kudlu.
+// 12°54'N 77°39'E, the published site near Haralakunte.
+export const KCDC = { lat: 12.9, lng: 77.65, radiusM: 1000 };
+
 export const AREA_CENTERS: Record<Area, { lat: number; lng: number; zoom: number }> =
   {
     HSR: { lat: 12.9121, lng: 77.6386, zoom: 14 },
@@ -14,19 +18,15 @@ export const AREA_CENTERS: Record<Area, { lat: number; lng: number; zoom: number
 
 export const STATUS_LABELS: Record<Status, string> = {
   new: "New",
-  contacted: "Contacted",
-  visit_booked: "Visit booked",
-  visited: "Visited",
   shortlisted: "Shortlisted",
+  contacted: "Contacted",
   rejected: "Rejected",
 };
 
 export const STATUS_COLORS: Record<Status, string> = {
-  new: "#64748b",
-  contacted: "#d97706",
-  visit_booked: "#7c3aed",
-  visited: "#0284c7",
-  shortlisted: "#059669",
+  new: "#2563eb",
+  shortlisted: "#16a34a",
+  contacted: "#ea580c",
   rejected: "#e11d48",
 };
 

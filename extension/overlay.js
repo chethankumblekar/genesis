@@ -1,46 +1,35 @@
 (() => {
-  const site = (globalThis.HH?.sites || []).find((s) => s.matches());
-  if (!site) return;
-
   const PILL_ID = "hh-import-pill";
-  if (document.getElementById(PILL_ID)) return;
 
-  const pill = document.createElement("div");
-  pill.id = PILL_ID;
-  pill.setAttribute("role", "status");
-  Object.assign(pill.style, {
-    position: "fixed",
-    right: "18px",
-    bottom: "18px",
-    zIndex: "2147483647",
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-    padding: "10px 14px",
-    borderRadius: "999px",
-    background: "#0f172a",
-    color: "#f8fafc",
-    font: "500 13px/1.3 system-ui, -apple-system, sans-serif",
-    boxShadow: "0 8px 24px rgba(15,23,42,.35)",
-    cursor: "pointer",
-    userSelect: "none",
-  });
+  const resolveSite = () => {
+    try {
+      return (globalThis.HH?.sites || []).find((s) => s.matches()) || null;
+    } catch {
+      return null;
+    }
+  };
 
-  const label = document.createElement("span");
-  pill.append(label);
-  document.documentElement.append(pill);
-
+  // Facebook is a single-page app: you land on facebook.com and reach
+  // Marketplace without a page load. The content script therefore runs on every
+  // page of these sites and decides for itself, rather than relying on the URL
+  // at injection time, which is how the pill came to never appear there.
+  let site = null;
+  let pill = null;
+  let label = null;
   let busy = false;
-  let count = 0;
+  let observer = null;
+  let recountTimer = null;
 
-  const setLabel = (text, tone) => {
+  function setLabel(text, tone) {
+    if (!label) return;
     label.textContent = text;
     pill.style.background =
       tone === "error" ? "#7f1d1d" : tone === "done" ? "#065f46" : "#0f172a";
-  };
+  }
 
-  const recount = () => {
-    if (busy) return;
+  function recount() {
+    if (busy || !site || !pill) return;
+    let count = 0;
     try {
       count = site.harvest().length;
     } catch {
@@ -57,15 +46,19 @@
           : "No listings on this page"
     );
     pill.style.cursor = count ? "pointer" : "default";
+  }
+
+  const scheduleRecount = () => {
+    clearTimeout(recountTimer);
+    recountTimer = setTimeout(recount, 600);
   };
 
-  pill.addEventListener("click", async () => {
-    if (busy) return;
+  async function send() {
+    if (busy || !site) return;
 
     const items = site.harvest();
     if (!items.length) {
-      // Never POST an empty harvest — that is a broken selector, not an empty page.
-      setLabel("Couldn't read this page", "error");
+      setLabel("Nothing to import here", "error");
       setTimeout(recount, 2500);
       return;
     }
@@ -101,19 +94,79 @@
       busy = false;
       setTimeout(recount, 4000);
     }
-  });
+  }
 
-  recount();
+  function createPill() {
+    pill = document.createElement("div");
+    pill.id = PILL_ID;
+    pill.setAttribute("role", "status");
+    Object.assign(pill.style, {
+      position: "fixed",
+      right: "18px",
+      bottom: "18px",
+      zIndex: "2147483647",
+      display: "flex",
+      alignItems: "center",
+      gap: "10px",
+      padding: "10px 14px",
+      borderRadius: "999px",
+      background: "#0f172a",
+      color: "#f8fafc",
+      font: "500 13px/1.3 system-ui, -apple-system, sans-serif",
+      boxShadow: "0 8px 24px rgba(15,23,42,.35)",
+      cursor: "pointer",
+      userSelect: "none",
+    });
+    label = document.createElement("span");
+    pill.append(label);
+    pill.addEventListener("click", () => void send());
+    document.documentElement.append(pill);
 
-  // Both sites load more cards as you scroll; keep the count honest without
-  // hammering the DOM on every scroll event.
-  let timer = null;
-  const schedule = () => {
-    clearTimeout(timer);
-    timer = setTimeout(recount, 600);
-  };
-  new MutationObserver(schedule).observe(document.body, {
-    childList: true,
-    subtree: true,
-  });
+    observer = new MutationObserver(scheduleRecount);
+    observer.observe(document.body, { childList: true, subtree: true });
+    recount();
+  }
+
+  function removePill() {
+    observer?.disconnect();
+    observer = null;
+    pill?.remove();
+    pill = null;
+    label = null;
+  }
+
+  function sync() {
+    const next = resolveSite();
+
+    if (!next) {
+      if (pill) removePill();
+      site = null;
+      return;
+    }
+
+    // Re-attach if the app's own rendering tore the pill out of the document.
+    if (next !== site || !pill || !pill.isConnected) {
+      removePill();
+      site = next;
+      createPill();
+    }
+  }
+
+  // These apps navigate without a page load, and patching history from an
+  // isolated world does not see the page's own calls, so poll the URL.
+  let lastUrl = location.href;
+  setInterval(() => {
+    if (location.href !== lastUrl) {
+      lastUrl = location.href;
+      sync();
+      scheduleRecount();
+    } else if (site && pill && !pill.isConnected) {
+      sync();
+    }
+  }, 800);
+
+  window.addEventListener("popstate", sync);
+
+  if (document.body) sync();
+  else document.addEventListener("DOMContentLoaded", sync, { once: true });
 })();

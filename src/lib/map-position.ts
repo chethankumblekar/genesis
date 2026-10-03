@@ -1,4 +1,4 @@
-import { AREA_CENTERS } from "./constants";
+import { AREA_CENTERS, KCDC } from "./constants";
 import type { Listing } from "./types";
 
 export type MapPosition = {
@@ -54,4 +54,24 @@ export function mapPositions(listings: Listing[]): Map<string, MapPosition> {
     if (pos) out.set(listing.id, pos);
   }
   return out;
+}
+
+export function distanceMeters(
+  lat: number,
+  lng: number,
+  otherLat: number,
+  otherLng: number
+): number {
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const dLat = toRad(otherLat - lat);
+  const dLng = toRad(otherLng - lng);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat)) * Math.cos(toRad(otherLat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * 6371000 * Math.asin(Math.sqrt(a));
+}
+
+export function isNearKcdc(pos: MapPosition | undefined): boolean {
+  if (!pos) return false;
+  return distanceMeters(pos.lat, pos.lng, KCDC.lat, KCDC.lng) <= KCDC.radiusM;
 }

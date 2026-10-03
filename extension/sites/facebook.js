@@ -32,16 +32,18 @@ HH.sites.push({
       const existing = byId.get(id);
       if (existing && existing.text.length >= text.length) continue;
 
+      // currentSrc first: Marketplace lazy-loads and swaps srcset entries.
       const images = [...anchor.querySelectorAll("img")]
-        .map((img) => img.src)
-        .filter((src) => src && src.startsWith("http"));
+        .map((img) => img.currentSrc || img.src || "")
+        .filter((src) => src.startsWith("http"));
 
       byId.set(id, {
         externalId: id,
         url: anchor.href.split("?")[0],
         text,
-        imageUrls: [...new Set(images)].slice(0, 6),
+        imageUrls: [...new Set(images)].slice(0, 8),
         capturedAt: new Date().toISOString(),
+        kind: "card",
       });
     }
 
