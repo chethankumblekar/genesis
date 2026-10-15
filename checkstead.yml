@@ -9,16 +9,20 @@ snapshot: https://github.com/chethankumblekar/dependency-check-db-cache/releases
 # CNA score, otherwise another analyzer. highest takes the largest from any source.
 scorePolicy: prefer-newest
 
-# Deliberately empty for now: the first runs report findings without failing the
-# build, so a threshold can be chosen from what this project actually has rather
-# than from a number picked in advance. Set to 7 to fail on high and critical.
+# Left open deliberately. The first scan found 10 findings: 0 critical, 3 high
+# (all 7.5, all transitive -- @modelcontextprotocol/sdk, braces, source-map-js),
+# 6 medium and 1 unscored. Setting this to 7 would fail the build today, so it
+# is a decision to take once those three are updated away or suppressed, not a
+# number to switch on blind.
 threshold:
 
-# Likewise off until the first scan is read. A KEV finding is a vulnerability
-# CISA records as actually exploited, so this is the first thing to turn on.
-failOnKev: false
+# On. A KEV finding is one CISA records as actively exploited, and the first
+# scan found none, so this gate costs nothing today and is the one worth having
+# the moment that changes.
+failOnKev: true
 
-# A finding with no score is reported as "no score" rather than passing quietly.
+# Off: one current finding (GHSA-vcvr-r3jv-pc5j on next) carries no score, so
+# turning this on would fail the build for a vulnerability nobody has rated yet.
 failUnscored: false
 
 # Optional local file of suppression rules. A URL is refused by design.
