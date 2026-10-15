@@ -129,7 +129,15 @@
   }
 }
 
-.hh-map,
+/* The wrapper's own height comes from its utility class. Forcing height:100%
+   here used to override it, which only worked while the wrapper sat in a grid
+   cell that gave it a definite height to resolve against. In a flex column
+   there is none, so the percentage collapsed to auto and the Leaflet container
+   below it ended up zero-height. */
+.hh-map {
+  z-index: 0;
+}
+
 .hh-map .leaflet-container {
   height: 100%;
   width: 100%;
@@ -145,4 +153,15 @@
 
 .leaflet-container {
   font-family: inherit;
+}
+
+.leaflet-div-icon.hh-pin {
+  background: transparent;
+  border: none;
+}
+
+.hh-pin-svg {
+  display: block;
+  overflow: visible;
+  filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.35));
 }

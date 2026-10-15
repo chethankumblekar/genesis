@@ -1,0 +1,17 @@
+/Users/cipher_crawler/checkstead/dependency-check/bin/dependency-check.sh
+--noupdate
+--disableVersionCheck
+--data
+/Users/cipher_crawler/.cache/checkstead/2026-10-15/data
+--project
+
+--out
+checkstead-report
+--format
+HTML
+--format
+JSON
+--prettyPrint
+--disableYarnAudit
+--scan
+.

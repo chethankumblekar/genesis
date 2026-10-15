@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { VisitChecklist } from "@/components/visit-checklist";
 import { Overlay } from "@/components/overlay";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -30,8 +31,10 @@ import {
   POWER_BACKUP,
   SOURCES,
   STATUSES,
+  defaultVisitChecks,
   type Listing,
   type ListingDraft,
+  type VisitCheck,
 } from "@/lib/types";
 
 const FURNISHED_LABELS = {
@@ -62,6 +65,9 @@ type FormState = {
   lat: string;
   lng: string;
   status: Listing["status"];
+  visitBooked: string;
+  visited: boolean;
+  visitChecks: VisitCheck[];
 };
 
 function listingToForm(listing: Listing): FormState {
@@ -86,6 +92,9 @@ function listingToForm(listing: Listing): FormState {
     lat: listing.lat == null ? "" : String(listing.lat),
     lng: listing.lng == null ? "" : String(listing.lng),
     status: listing.status,
+    visitBooked: listing.visitBooked,
+    visited: listing.visited,
+    visitChecks: listing.visitChecks,
   };
 }
 
@@ -216,6 +225,9 @@ function ListingFormBody({
       lat,
       lng,
       status: form.status,
+      visitBooked: form.visitBooked,
+      visited: form.visited,
+      visitChecks: form.visitChecks,
       updatedAt: new Date().toISOString(),
     };
     setSaving(true);
@@ -288,6 +300,36 @@ function ListingFormBody({
               </Select>
             </Field>
           </div>
+          {form.status === "contacted" ? (
+            <div className="flex flex-wrap gap-4">
+              <label className="grid gap-1.5 text-sm">
+                Visit booked
+                <Input
+                  type="date"
+                  className="w-40"
+                  value={form.visitBooked}
+                  onChange={(e) => set("visitBooked", e.target.value)}
+                />
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={form.visited}
+                  onCheckedChange={(v) => {
+                    const visited = v === true;
+                    set("visited", visited);
+                    if (visited && form.visitChecks.length === 0) {
+                      set("visitChecks", defaultVisitChecks());
+                    }
+                  }}
+                />
+                Visited
+              </label>
+            </div>
+          ) : null}
+          <VisitChecklist
+            checks={form.visitChecks}
+            onChange={(visitChecks) => set("visitChecks", visitChecks)}
+          />
           <div className="grid grid-cols-3 gap-3">
             <Field label="Rent (₹)">
               <Input

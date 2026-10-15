@@ -20,6 +20,9 @@
 # production
 /build
 
+# postgres data (bind-mounted into the db container)
+/data/
+
 # misc
 .DS_Store
 *.pem

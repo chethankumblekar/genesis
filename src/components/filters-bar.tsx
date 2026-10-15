@@ -10,9 +10,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { SOURCE_LABELS, STATUS_LABELS } from "@/lib/constants";
+import { SOURCE_LABELS } from "@/lib/constants";
 import { ParkingPreferredToggle } from "@/components/listing-form";
-import { AREAS, SOURCES, STATUSES, type Area, type Filters } from "@/lib/types";
+import { AREAS, SOURCES, type Area, type Filters } from "@/lib/types";
 
 export function FiltersBar({
   filters,
@@ -65,28 +65,6 @@ export function FiltersBar({
               })
             }
           />
-        </div>
-        <div className="grid gap-1.5">
-          <Label>Status</Label>
-          <Select
-            value={filters.status}
-            onValueChange={(v) => {
-              if (typeof v === "string")
-                onChange({ ...filters, status: v as Filters["status"] });
-            }}
-          >
-            <SelectTrigger className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All statuses</SelectItem>
-              {STATUSES.map((s) => (
-                <SelectItem key={s} value={s}>
-                  {STATUS_LABELS[s]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
         </div>
         <div className="grid gap-1.5">
           <Label>Source</Label>
