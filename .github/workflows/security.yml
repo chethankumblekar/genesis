@@ -17,6 +17,15 @@ concurrency:
 jobs:
   dependencies:
     runs-on: ubuntu-latest
+    # The action does three privileged things with the job token, and the
+    # repository default is read-only, so each has to be granted explicitly:
+    #   pull-requests  post the findings comment on a PR
+    #   security-events  upload checkstead.sarif to the Security tab
+    #   contents  checkout, and the base/head fetches for a PR diff scan
+    permissions:
+      contents: read
+      pull-requests: write
+      security-events: write
     steps:
       - uses: actions/checkout@v4
 
