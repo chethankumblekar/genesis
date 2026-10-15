@@ -210,7 +210,10 @@ function ListingCard({
       <CardHeader className="pb-0">
         <div className="flex items-start justify-between gap-2">
           <CardTitle className="line-clamp-2">{listingTitle(listing)}</CardTitle>
-          <span className="shrink-0 text-xs font-medium tabular-nums">
+          <span
+            className="shrink-0 text-xs font-medium tabular-nums"
+            title="Must-have checks"
+          >
             {score.ticked}/{score.total}
           </span>
         </div>

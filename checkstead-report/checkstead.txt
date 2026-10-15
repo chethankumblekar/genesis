@@ -1,0 +1,20 @@
+engine: 13.0.0
+snapshot: 2026-10-15T05:24:17Z
+checksum: sha256:c8d08a740620b56cc14b96f5236d01ffd3e0e9d8a4021d0986423a5cfbd958fe
+notice: This product uses data from the NVD API but is not endorsed or certified by the NVD.
+score-policy: prefer-newest
+threshold: none
+fail-on-kev: false
+fail-unscored: false
+private-suppressions: none
+finding: GHSA-6qxp-vccf-f47h cvss=3.1 score=7.5 source=NPM vector=CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N enrichment=no-nvd-score kev=no dependency=@modelcontextprotocol/sdk:1.30.0
+finding: GHSA-vfj7-8cjw-p6xm cvss=3.1 score=7.5 source=NPM vector=CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H enrichment=no-nvd-score kev=no dependency=braces:3.0.3
+finding: CVE-2025-69993 cvss=3.1 score=6.1 source=NVD vector=CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N enrichment=present kev=no dependency=leaflet:1.9.4
+finding: GHSA-vcvr-r3jv-pc5j cvss=none score=none source=none vector=none enrichment=no-nvd-score kev=no dependency=next:16.3.5
+finding: GHSA-cjq9-62q9-8jv4 cvss=3.1 score=6.5 source=NPM vector=CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:L/A:N enrichment=no-nvd-score kev=no dependency=next:16.3.5
+finding: GHSA-39w2-rjm5-chcv cvss=3.1 score=5.4 source=NPM vector=CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:L/I:L/A:N enrichment=no-nvd-score kev=no dependency=next:16.3.5
+finding: GHSA-4jqv-mc3x-m676 cvss=3.1 score=5.3 source=NPM vector=CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L enrichment=no-nvd-score kev=no dependency=next:16.3.5
+finding: GHSA-f87g-xv8r-7p7x cvss=3.1 score=5.3 source=NPM vector=CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N enrichment=no-nvd-score kev=no dependency=next:16.3.5
+finding: GHSA-mcj8-r9mp-w47p cvss=3.1 score=4.8 source=NPM vector=CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:L/A:L enrichment=no-nvd-score kev=no dependency=next:16.3.5
+finding: GHSA-3w37-wq28-93x7 cvss=3.1 score=4.2 source=NPM vector=CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:L/I:L/A:N enrichment=no-nvd-score kev=no dependency=next:16.3.5
+finding: GHSA-68fv-2mgg-jv7q cvss=3.1 score=7.5 source=NPM vector=CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H enrichment=no-nvd-score kev=no dependency=source-map-js:1.2.1

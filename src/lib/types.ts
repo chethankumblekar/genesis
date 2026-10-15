@@ -52,24 +52,80 @@ export type Furnished = (typeof FURNISHED)[number];
 export const POWER_BACKUP = ["yes", "no", "unknown"] as const;
 export type PowerBackup = (typeof POWER_BACKUP)[number];
 
+export const VISIT_PHASES = ["primary", "secondary"] as const;
+export type VisitPhase = (typeof VISIT_PHASES)[number];
+
 export type VisitCheck = {
   id: string;
   label: string;
   checked: boolean;
+  phase: VisitPhase;
 };
 
-export const DEFAULT_VISIT_CHECK_LABELS = [
-  "Kitchen is big",
+/** A tick means the house passes, so the wording is the passing state. */
+export const PRIMARY_VISIT_CHECKS = [
+  "Big kitchen",
   "Attached bathroom",
   "Car parking",
+  "Garbage collection",
+  "Maid availability",
+  "Ventilation and natural light",
+  "Storage space",
+  "Building maintenance and society rules",
+  "Security (locks, grills, gate, intercom, guard, CCTV, entry times)",
+  "No leaks, dampness, or mold",
+  "Power backup",
+  "Lift",
+  "Mobile network and fiber",
+  "Not the top floor",
 ] as const;
 
+export const SECONDARY_VISIT_CHECKS = [
+  "Water pressure and drainage",
+  "Electrical outlets and switches",
+  "Windows and doors",
+  "Water heating and appliances",
+  "Kitchen with exhaust",
+  "Bathroom with exhaust",
+  "Bedroom is not west facing",
+  "Kaveri water supply",
+  "Separate electricity meter",
+  "Washing machine inlet",
+] as const;
+
+const LEGACY_VISIT_LABELS: Record<string, string> = {
+  "Kitchen is big": "Big kitchen",
+};
+
 export function defaultVisitChecks(): VisitCheck[] {
-  return DEFAULT_VISIT_CHECK_LABELS.map((label) => ({
-    id: `default:${label}`,
-    label,
-    checked: false,
-  }));
+  return [
+    ...PRIMARY_VISIT_CHECKS.map((label) => visitCheck(label, "primary")),
+    ...SECONDARY_VISIT_CHECKS.map((label) => visitCheck(label, "secondary")),
+  ];
+}
+
+function visitCheck(label: string, phase: VisitPhase, checked = false): VisitCheck {
+  return { id: `default:${label}`, label, checked, phase };
+}
+
+/** Defaults plus any checks added by hand. Saved ticks survive a renamed label. */
+export function withDefaultVisitChecks(saved: VisitCheck[]): VisitCheck[] {
+  const defaults = defaultVisitChecks();
+  const used = new Set<string>();
+  const merged = defaults.map((item) => {
+    const hit = saved.find((check) => {
+      if (used.has(check.id)) return false;
+      const label = LEGACY_VISIT_LABELS[check.label] ?? check.label;
+      return check.id === item.id || label === item.label;
+    });
+    if (!hit) return item;
+    used.add(hit.id);
+    return { ...item, checked: hit.checked };
+  });
+  const added = saved
+    .filter((check) => !used.has(check.id))
+    .map((check) => ({ ...check, phase: check.phase === "primary" ? "primary" : "secondary" }) as VisitCheck);
+  return [...merged, ...added];
 }
 
 export type Listing = {

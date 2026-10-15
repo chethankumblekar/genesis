@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { distanceMeters, type MapPosition } from "./map-position";
-import { emptyListing, type Listing, type VisitCheck } from "./types";
+import { emptyListing, withDefaultVisitChecks, type Listing, type VisitCheck, type VisitPhase } from "./types";
 import { checkScore, compareByRank, formatSpan, groupVisits } from "./visit-plan";
 
 const house = (over: Partial<Listing>): Listing =>
@@ -11,11 +11,12 @@ const house = (over: Partial<Listing>): Listing =>
     ...over,
   });
 
-function checks(flags: boolean[]): VisitCheck[] {
+function checks(flags: boolean[], phase: VisitPhase = "primary"): VisitCheck[] {
   return flags.map((checked, index) => ({
-    id: `c${index}`,
-    label: `Check ${index}`,
+    id: `c${phase}${index}`,
+    label: `Check ${phase} ${index}`,
     checked,
+    phase,
   }));
 }
 
@@ -23,15 +24,49 @@ function at(id: string, lat: number, lng: number, exact = true): [string, MapPos
   return [id, { lat, lng, exact }];
 }
 
-test("an empty checklist scores as 0/3", () => {
-  assert.deepEqual(checkScore([]), { ticked: 0, total: 3 });
+test("an empty checklist scores the must-have and secondary defaults", () => {
+  assert.deepEqual(checkScore([]), {
+    ticked: 0,
+    total: 14,
+    secondaryTicked: 0,
+    secondaryTotal: 10,
+  });
 });
 
-test("score counts saved ticks and unticks", () => {
-  assert.deepEqual(checkScore(checks([true, true, false, false])), {
-    ticked: 2,
-    total: 4,
+test("score counts saved must-have ticks", () => {
+  const score = checkScore(checks([true, true, false, false]));
+  assert.equal(score.ticked, 2);
+  assert.equal(score.total, 18);
+});
+
+test("a saved big-kitchen tick stays on the renamed must-have", () => {
+  const shown = withDefaultVisitChecks([
+    {
+      id: "default:Kitchen is big",
+      label: "Kitchen is big",
+      checked: true,
+      phase: "primary",
+    },
+    {
+      id: "default:Car parking",
+      label: "Car parking",
+      checked: true,
+      phase: "primary",
+    },
+  ]);
+  assert.equal(shown.filter((check) => check.label === "Big kitchen").length, 1);
+  assert.equal(shown.find((check) => check.label === "Big kitchen")?.checked, true);
+  assert.equal(shown.find((check) => check.label === "Car parking")?.checked, true);
+  assert.equal(shown.find((check) => check.label === "Attached bathroom")?.phase, "primary");
+});
+
+test("one must-have tick outranks a full secondary list", () => {
+  const must = house({ id: "must", visitChecks: checks([true]) });
+  const extras = house({
+    id: "extras",
+    visitChecks: checks([true, true, true, true, true], "secondary"),
   });
+  assert.ok(compareByRank(must, extras) < 0);
 });
 
 test("more ticks rank first", () => {

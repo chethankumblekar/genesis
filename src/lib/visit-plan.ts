@@ -1,14 +1,23 @@
 import { distanceMeters, type MapPosition } from "./map-position";
-import { defaultVisitChecks, type Listing, type VisitCheck } from "./types";
+import { withDefaultVisitChecks, type Listing, type VisitCheck } from "./types";
 
 const VISIT_RADIUS_M = 2000;
 const MAX_ROUTE_STOPS = 11;
 
-export function checkScore(checks: VisitCheck[]): { ticked: number; total: number } {
-  const shown = checks.length > 0 ? checks : defaultVisitChecks();
+export function checkScore(checks: VisitCheck[]): {
+  ticked: number;
+  total: number;
+  secondaryTicked: number;
+  secondaryTotal: number;
+} {
+  const shown = withDefaultVisitChecks(checks);
+  const primary = shown.filter((check) => check.phase === "primary");
+  const secondary = shown.filter((check) => check.phase === "secondary");
   return {
-    ticked: shown.filter((check) => check.checked).length,
-    total: shown.length,
+    ticked: primary.filter((check) => check.checked).length,
+    total: primary.length,
+    secondaryTicked: secondary.filter((check) => check.checked).length,
+    secondaryTotal: secondary.length,
   };
 }
 
@@ -20,6 +29,12 @@ export function compareByRank(a: Listing, b: Listing): number {
   const untickedA = scoreA.total - scoreA.ticked;
   const untickedB = scoreB.total - scoreB.ticked;
   if (untickedA !== untickedB) return untickedA - untickedB;
+  if (scoreA.secondaryTicked !== scoreB.secondaryTicked) {
+    return scoreB.secondaryTicked - scoreA.secondaryTicked;
+  }
+  const secondaryUntickedA = scoreA.secondaryTotal - scoreA.secondaryTicked;
+  const secondaryUntickedB = scoreB.secondaryTotal - scoreB.secondaryTicked;
+  if (secondaryUntickedA !== secondaryUntickedB) return secondaryUntickedA - secondaryUntickedB;
   const rentA = a.rent ?? Number.POSITIVE_INFINITY;
   const rentB = b.rent ?? Number.POSITIVE_INFINITY;
   if (rentA !== rentB) return rentA - rentB;

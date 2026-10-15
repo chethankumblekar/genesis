@@ -1,0 +1,25 @@
+# Checkstead — dependency vulnerability scanning.
+# https://github.com/chethankumblekar/dependency-check-db-cache
+#
+# The snapshot is a prebuilt Dependency-Check database, so a scan needs no NVD
+# API key and does not call the NVD at build time.
+snapshot: https://github.com/chethankumblekar/dependency-check-db-cache/releases/latest/download/manifest.json
+
+# prefer-newest judges a finding on an NVD score when there is one, otherwise a
+# CNA score, otherwise another analyzer. highest takes the largest from any source.
+scorePolicy: prefer-newest
+
+# Deliberately empty for now: the first runs report findings without failing the
+# build, so a threshold can be chosen from what this project actually has rather
+# than from a number picked in advance. Set to 7 to fail on high and critical.
+threshold:
+
+# Likewise off until the first scan is read. A KEV finding is a vulnerability
+# CISA records as actually exploited, so this is the first thing to turn on.
+failOnKev: false
+
+# A finding with no score is reported as "no score" rather than passing quietly.
+failUnscored: false
+
+# Optional local file of suppression rules. A URL is refused by design.
+privateSuppressions:

@@ -14,6 +14,7 @@ import {
 import { formatInr, listingTitle } from "@/lib/format";
 import { mapPositions } from "@/lib/map-position";
 import { STATUSES, type Area, type Listing } from "@/lib/types";
+import { checkScore } from "@/lib/visit-plan";
 
 export function ListingMap({
   listings,
@@ -136,6 +137,7 @@ export function ListingMap({
           const listingLink = href
             ? `<a href="${escapeHtml(href)}" target="_blank" rel="noreferrer noopener" style="margin-left:8px">Listing</a>`
             : "";
+          const mustHaves = checkScore(listing.visitChecks);
           const notes = listing.notes
             ? `<p style="margin:4px 0 0;color:#525252;max-width:220px">${escapeHtml(listing.notes).slice(0, 180)}</p>`
             : "";
@@ -152,11 +154,7 @@ export function ListingMap({
                         ? `Visit booked ${escapeHtml(formatVisitDate(listing.visitBooked))}`
                         : "",
                       listing.visited
-                        ? `Visited${
-                            listing.visitChecks.length
-                              ? ` · ${listing.visitChecks.filter((check) => check.checked).length}/${listing.visitChecks.length} checks`
-                              : ""
-                          }`
+                        ? `Visited · ${mustHaves.ticked}/${mustHaves.total} must-haves`
                         : "",
                     ]
                       .filter(Boolean)

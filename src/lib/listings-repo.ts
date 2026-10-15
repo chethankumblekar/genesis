@@ -99,6 +99,7 @@ function asVisitChecks(value: unknown): VisitCheck[] {
         id: asString(rec.id) || crypto.randomUUID(),
         label,
         checked: asBool(rec.checked),
+        phase: rec.phase === "primary" ? "primary" : "secondary",
       },
     ];
   });
